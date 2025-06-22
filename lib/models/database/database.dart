@@ -73,14 +73,12 @@ class AppDatabase {
     return result > 0;
   }
   Future<List<Map<String, dynamic>>> query(String table, String? where, List<Object?>? whereArgs) async {
-    print('Querying table: $table with where: $where and whereArgs: $whereArgs');
     final db = await database;
     return await db.query(table, where: where, whereArgs: whereArgs);
   }
   Future<Map<String, dynamic>?> queryById(String table, String id) async {
     final db = await database;
     List<Map<String, dynamic>> result = await db.query(table, where: 'id = ?', whereArgs: [id]);
-    print('Querying table: $table with id: $id result: $result');
     return result.isNotEmpty ? result.first : null;
   }
 }

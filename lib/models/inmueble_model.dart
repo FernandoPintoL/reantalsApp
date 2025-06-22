@@ -1,4 +1,5 @@
-import 'tipo_inmueble.dart';
+import 'package:rentals/models/servicio_basico_model.dart';
+import 'tipo_inmueble_model.dart';
 import 'user_model.dart';
 
 class InmuebleModel {
@@ -11,7 +12,7 @@ class InmuebleModel {
   final double precio;
   final bool isOcupado;
   final List<Map<String, dynamic>>? accesorios;
-  final List<Map<String, dynamic>>? servicios_basicos;
+  final List<ServicioBasicoModel>? servicios_basicos;
   final int tipoInmuebleId;
 
   late TipoInmuebleModel? tipoInmueble;
@@ -32,21 +33,20 @@ class InmuebleModel {
   });
 
   factory InmuebleModel.mapToModel(Map<String, dynamic> doc) {
+    print('InmuebleModel.mapToModel: ${doc['servicios_basicos']}');
     InmuebleModel model = InmuebleModel(
       id: doc['id'] ?? 0,
-      userId: doc['propietario_id'] ?? 0,
+      userId: doc['user_id'] ?? 0,
       nombre: doc['nombre'] ?? '',
       detalle: doc['detalle'],
       numHabitacion: doc['num_habitacion'] ?? '',
       numPiso: doc['num_piso'] ?? '',
-      precio: (doc['precio'] is num) ? (doc['precio'] as num).toDouble() : 0.0,
-      isOcupado: doc['is_ocupado'] ?? false,
-      accesorios: (doc['accesorios'] as List<dynamic>?)
-          ?.map((item) => Map<String, dynamic>.from(item))
-          .toList(),
-      servicios_basicos: (doc['servicios_basicos'] as List<dynamic>?)
-          ?.map((item) => Map<String, dynamic>.from(item))
-          .toList(),
+      precio: double.tryParse(doc['precio']?.toString() ?? '0') ?? 0.0,
+      isOcupado: doc['isOcupado'] ?? false,
+      accesorios: null,
+      servicios_basicos: doc['servicios_basicos'] is List
+          ? ServicioBasicoModel.fromJsonList(doc['servicios_basicos'] as List<dynamic>?)
+          : null,
       tipoInmuebleId: doc['tipo_inmueble_id'] ?? 0,
     );
     if (doc['tipo_inmueble'] != null) {
@@ -64,17 +64,16 @@ class InmuebleModel {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'propietario_id': userId,
+      'user_id': userId,
       'nombre': nombre,
       'detalle': detalle,
       'num_habitacion': numHabitacion,
       'num_piso': numPiso,
       'precio': precio,
-      'is_ocupado': isOcupado,
-      'accesorios': accesorios ?? [],
-      'servicios_basicos': servicios_basicos ?? [],
+      'isOcupado': isOcupado,
+      'accesorios': accesorios ?? null,
       'tipo_inmueble_id': tipoInmuebleId,
-      'tipo_inmueble': tipoInmueble?.toJson(),
+      'servicios_basicos': servicios_basicos?.map((servicio) => servicio.toJson()).toList(),
     };
   }
   static List<InmuebleModel> fromList(dynamic data) {

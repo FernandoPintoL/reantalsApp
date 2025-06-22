@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/authenticated_provider.dart';
-import 'inmuebles/inmuebles_screen.dart';
+import '../../providers/inmueble_provider.dart';
+import 'inmuebles/my_inmuebles_screen.dart';
 import 'inmuebles/detalle_inmuebles.dart';
 import 'solicitudes/solicitudes_screen.dart';
 
@@ -28,6 +29,26 @@ class _HomePropietarioScreenState extends State<HomePropietarioScreen> with Sing
     super.dispose();
   }
 
+  Future<void> _cerrarSession() async {
+    setState(() {
+      _isLoading = true;
+    });
+    bool result = await context.read<AuthenticatedProvider>().logout();
+    if (!result) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al cerrar sesión')),
+      );
+      return;
+    }
+    setState(() {
+      _isLoading = false;
+    });
+    Navigator.of(context).pushReplacementNamed('/');
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthenticatedProvider>().userActual;
@@ -39,8 +60,7 @@ class _HomePropietarioScreenState extends State<HomePropietarioScreen> with Sing
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              // Implement logout functionality
-              Navigator.of(context).pushReplacementNamed('/');
+              _cerrarSession();
             },
             tooltip: 'Cerrar Sesión',
           ),
@@ -146,7 +166,7 @@ class _HomePropietarioScreenState extends State<HomePropietarioScreen> with Sing
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const InmueblesScreen(),
+                        builder: (context) => const MyInmueblesScreen(),
                       ),
                     );
                   },
@@ -158,6 +178,7 @@ class _HomePropietarioScreenState extends State<HomePropietarioScreen> with Sing
                   leading: const Icon(Icons.add_home, color: Colors.green),
                   trailing: const Icon(Icons.arrow_forward_ios),
                   onTap: () {
+                    context.read<InmuebleProvider>().clear();
                     Navigator.push(
                       context,
                       MaterialPageRoute(

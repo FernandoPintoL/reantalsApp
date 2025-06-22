@@ -12,36 +12,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> implements AuthenticatedScreenState {
-  /*final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  String? _errorMessage;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }*/
-
-  // Temporarily bypassing actual authentication
-  /*Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
-
-      // Simulate a delay to show loading indicator
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      // Simply navigate to home screen without actual authentication
-      Navigator.of(context).pushReplacementNamed('/home');
-    }
-  }*/
 
   Future<void> initLogin() async {
     // Initialize the login process

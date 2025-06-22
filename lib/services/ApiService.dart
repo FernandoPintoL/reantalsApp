@@ -156,7 +156,7 @@ class ApiService {
       var request = http.MultipartRequest('POST', url);
       request.headers.addAll({...?defaultHeaders, ...?headers});
       request.files.add(await http.MultipartFile.fromPath('file', filePath));
-      request.fields['id'] = id.toString();
+      request.fields['inmueble_id'] = id.toString();
       final response = await request.send();
       print('Response: ${response.statusCode}');
       if (response.statusCode != 200) {

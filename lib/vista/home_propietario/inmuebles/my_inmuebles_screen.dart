@@ -1,17 +1,20 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../providers/inmueble_provider.dart';
 import '../../../models/inmueble_model.dart';
+import '../../components/Loading.dart';
+import '../../components/image_profile_inmueble.dart';
 import 'detalle_inmuebles.dart';
 
-class InmueblesScreen extends StatefulWidget {
-  const InmueblesScreen({Key? key}) : super(key: key);
+class MyInmueblesScreen extends StatefulWidget {
+  const MyInmueblesScreen({Key? key}) : super(key: key);
 
   @override
-  State<InmueblesScreen> createState() => _InmueblesScreenState();
+  State<MyInmueblesScreen> createState() => _MyInmueblesScreenState();
 }
 
-class _InmueblesScreenState extends State<InmueblesScreen> {
+class _MyInmueblesScreenState extends State<MyInmueblesScreen> {
   @override
   void initState() {
     super.initState();
@@ -39,10 +42,10 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
       body: Consumer<InmuebleProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Loading(title: 'Cargando inmuebles...');
           }
 
-          if (provider.message != null && provider.inmuebles.isEmpty) {
+          if (provider.message != null && provider.myInmuebles.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -64,7 +67,7 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
             );
           }
 
-          if (provider.inmuebles.isEmpty) {
+          if (provider.myInmuebles.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -79,9 +82,9 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => DetalleInmueblesScreen(
-                            isEditing: false,
-                          ),
+                          builder:
+                              (context) =>
+                                  DetalleInmueblesScreen(isEditing: false),
                         ),
                       );
                     },
@@ -91,13 +94,12 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
               ),
             );
           }
-
           return RefreshIndicator(
             onRefresh: () => provider.loadInmueblesByPropietarioId(),
             child: ListView.builder(
-              itemCount: provider.inmuebles.length,
+              itemCount: provider.myInmuebles.length,
               itemBuilder: (context, index) {
-                final inmueble = provider.inmuebles[index];
+                final inmueble = provider.myInmuebles[index];
                 return _buildInmuebleCard(context, inmueble, provider);
               },
             ),
@@ -106,23 +108,25 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          context.read<InmuebleProvider>().clear();
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DetalleInmueblesScreen(
-                isEditing: false,
-              ),
+              builder: (context) => DetalleInmueblesScreen(isEditing: false),
             ),
           );
         },
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add),
         tooltip: 'Añadir Inmueble',
       ),
     );
   }
 
   Widget _buildInmuebleCard(
-      BuildContext context, InmuebleModel inmueble, InmuebleProvider provider) {
+    BuildContext context,
+    InmuebleModel inmueble,
+    InmuebleProvider provider,
+  ) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 4,
@@ -140,23 +144,22 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
                 topRight: Radius.circular(4),
               ),
             ),
-            child: inmueble.tipoInmueble?.nombre != null
-                ? Center(
-                    child: Text(
-                      inmueble.tipoInmueble!.nombre,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+            child:
+                inmueble.tipoInmueble?.nombre != null
+                    ? Center(
+                      child: Text(
+                        inmueble.tipoInmueble!.nombre,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    )
+                    : ImageProfileInmueble(
+                      imageUrl: "",
+                      isIcon: false,
+                      inmuebleId: inmueble.id,
                     ),
-                  )
-                : const Center(
-                    child: Icon(
-                      Icons.home,
-                      size: 64,
-                      color: Colors.grey,
-                    ),
-                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -173,10 +176,7 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
                 const SizedBox(height: 8),
                 Text(
                   inmueble.detalle ?? 'Sin detalles',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -195,10 +195,10 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.attach_money, size: 16),
+                    const Icon(CupertinoIcons.money_dollar_circle, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '\$${inmueble.precio.toStringAsFixed(2)}',
+                      '\Bs${inmueble.precio.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -234,10 +234,11 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => DetalleInmueblesScreen(
-                              isEditing: true,
-                              inmueble: inmueble,
-                            ),
+                            builder:
+                                (context) => DetalleInmueblesScreen(
+                                  isEditing: true,
+                                  inmueble: inmueble,
+                                ),
                           ),
                         );
                       },
@@ -247,7 +248,11 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
                     const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
-                        _showDeleteConfirmationDialog(context, inmueble, provider);
+                        _showDeleteConfirmationDialog(
+                          context,
+                          inmueble,
+                          provider,
+                        );
                       },
                       icon: const Icon(Icons.delete, color: Colors.red),
                       label: const Text(
@@ -266,32 +271,37 @@ class _InmueblesScreenState extends State<InmueblesScreen> {
   }
 
   void _showDeleteConfirmationDialog(
-      BuildContext context, InmuebleModel inmueble, InmuebleProvider provider) {
+    BuildContext context,
+    InmuebleModel inmueble,
+    InmuebleProvider provider,
+  ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text(
-            '¿Estás seguro de que deseas eliminar el inmueble "${inmueble.nombre}"?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await provider.deleteInmueble(inmueble.id);
-            },
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: Colors.red),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmar eliminación'),
+            content: Text(
+              '¿Estás seguro de que deseas eliminar el inmueble "${inmueble.nombre}"?',
             ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await provider.deleteInmueble(inmueble.id);
+                },
+                child: const Text(
+                  'Eliminar',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

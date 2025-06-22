@@ -15,8 +15,9 @@ class Loading extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.green.shade300,
-              Colors.green.shade700,
+              Colors.greenAccent.shade100,
+              Colors.green.shade400,
+              Colors.teal.shade900,
             ],
           ),
         ),

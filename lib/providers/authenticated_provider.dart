@@ -8,7 +8,7 @@ import '../vista/interfaces/authenticated_screen_state.dart';
 class AuthenticatedProvider extends ChangeNotifier{
   late AuthenticatedNegocio authenticatedNegocio;
   late AuthenticatedScreenState authenticatedScreenState;
-  UserModel? userActual;
+  UserModel? userActual; // Usuario actual de la sesión
 
   late GlobalKey formKey;
   late TextEditingController emailController;
@@ -71,6 +71,8 @@ class AuthenticatedProvider extends ChangeNotifier{
     _isPasswordRepeatedVisible = false;
     _isPropietario = false;
     _messageType = MessageType.info;
+
+    loadUserSession();
   }
 
   Future<void> login(AuthenticatedScreenState screen) async {
@@ -161,6 +163,46 @@ class AuthenticatedProvider extends ChangeNotifier{
     isLoading = false;
     isSuccess = false;
   }
+
+  Future<void> loadUserSession() async {
+    userActual = await getUserSession();
+  }
+
+  Future<UserModel?> getUserSession() async {
+    isLoading = true;
+    UserModel? userAct = await authenticatedNegocio.getUserSession();
+    if (userAct != null) {
+      messageType = MessageType.success;
+      message = 'Existe un usuario autenticado';
+      isSuccess = true;
+      print('Usuario actual: ${userAct!.tipoUsuario}');
+    } else {
+      messageType = MessageType.error;
+      isSuccess = false;
+      message = 'Error al obtener la sesión del usuario';
+    }
+    isLoading = false;
+    return userAct;
+  }
+
+  Future<bool> logout() async {
+    isLoading = true;
+    ResponseModel responseModel = await authenticatedNegocio.logout(userActual!.id);
+    if (responseModel.statusCode == 200) {
+      message = responseModel.message;
+      userActual = null; // Limpiar el usuario actual
+      messageType = MessageType.success;
+      isSuccess = true;
+      isLoading = false;
+    } else {
+      messageType = MessageType.error;
+      isLoading = false;
+      isSuccess = false;
+      message = ('${responseModel.message}\n${responseModel.messageError}').toString();
+    }
+    return isSuccess;
+  }
+
   String? get message => _message;
   set message(String? value) {
     _message = value;

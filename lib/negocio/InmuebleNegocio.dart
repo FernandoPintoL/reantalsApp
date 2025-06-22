@@ -1,7 +1,7 @@
 import '../services/ApiService.dart';
 import '../models/inmueble_model.dart';
 import '../models/response_model.dart';
-import '../models/galeria_inmueble_model.dart';
+import '../models/servicio_basico_model.dart';
 
 class InmuebleNegocio {
   final ApiService apiService;
@@ -27,9 +27,28 @@ class InmuebleNegocio {
     }
   }
 
+  Future<ResponseModel> getTipoInmueble() async {
+    try {
+      ResponseModel response = await apiService.post('tipoinmueble/query', {'query': ''});
+      print('Response from getTipoInmueble: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error fetching tipo inmueble: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error fetching tipo inmueble: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error fetching tipo inmueble: $e',
+      );
+    }
+  }
+
   Future<ResponseModel> getInmueblesByPropietarioId(int propietarioId) async {
     try {
-      ResponseModel response = await apiService.post('inmuebles/query', {'propietario_id': propietarioId});
+      ResponseModel response = await apiService.post('inmuebles/propietario', {'propietario_id': propietarioId});
       print('Response from getInmueblesByPropietarioId: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -68,7 +87,7 @@ class InmuebleNegocio {
 
   Future<ResponseModel> createInmueble(InmuebleModel inmueble) async {
     try {
-      ResponseModel response = await apiService.post('inmuebles', inmueble.toMap());
+      ResponseModel response = await apiService.post('inmuebles/store', inmueble.toMap());
       print('Response from createInmueble: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -87,8 +106,43 @@ class InmuebleNegocio {
 
   Future<ResponseModel> updateInmueble(InmuebleModel inmueble) async {
     try {
+      // Get the inmueble data as a map
+      Map<String, dynamic> inmuebleData = inmueble.toMap();
+
+      // Handle servicios_basicos separately to ensure they are properly formatted
+      /*if (inmueble.servicios_basicos != null) {
+        List<Map<String, dynamic>> serviciosBasicosJson = [];
+
+        // Convert each service to a properly formatted JSON object
+        for (var servicio in inmueble.servicios_basicos!) {
+          if (servicio is ServicioBasicoModel) {
+            serviciosBasicosJson.add({
+              'id': servicio.id,
+              'nombre': servicio.nombre,
+              'descripcion': servicio.descripcion,
+              'is_selected': servicio.isSelected,
+            });
+          } else {
+            // For Map or any other type, try to extract the values safely
+            final id = servicio is Map ? servicio['id'] : 0;
+            final nombre = servicio is Map ? servicio['nombre'] : '';
+            final descripcion = servicio is Map ? servicio['descripcion'] : null;
+            final isSelected = servicio is Map ? (servicio['is_selected'] ?? true) : true;
+
+            serviciosBasicosJson.add({
+              'id': id,
+              'nombre': nombre,
+              'descripcion': descripcion,
+              'is_selected': isSelected,
+            });
+          }
+        }
+
+        // Update the servicios_basicos field in the inmueble data
+        inmuebleData['servicios_basicos'] = serviciosBasicosJson;
+      }*/
+
       ResponseModel response = await apiService.put('inmuebles/${inmueble.id}', inmueble.toMap());
-      print('Response from updateInmueble: ${response.toJson()}');
       return response;
     } catch (e) {
       print('Error updating inmueble: $e');
@@ -125,8 +179,7 @@ class InmuebleNegocio {
 
   Future<ResponseModel> uploadInmuebleImage(int inmuebleId, String filePath) async {
     try {
-      ResponseModel response = await apiService.uploadFile('inmuebles/upload-image', filePath, inmuebleId);
-      print('Response from uploadInmuebleImage: ${response.toJson()}');
+      ResponseModel response = await apiService.uploadFile('inmuebles/subir-imagen', filePath, inmuebleId);
       return response;
     } catch (e) {
       print('Error uploading inmueble image: $e');
@@ -145,7 +198,6 @@ class InmuebleNegocio {
   Future<ResponseModel> getInmuebleGaleria(int inmuebleId) async {
     try {
       ResponseModel response = await apiService.get('inmuebles/$inmuebleId/galeria');
-      print('Response from getInmuebleGaleria: ${response.toJson()}');
       return response;
     } catch (e) {
       print('Error fetching inmueble galeria: $e');
@@ -157,6 +209,25 @@ class InmuebleNegocio {
         statusCode: 500,
         data: null,
         message: 'Error fetching inmueble galeria: $e',
+      );
+    }
+  }
+
+  Future<ResponseModel> getFirstImage(int inmuebleId) async {
+    try {
+      ResponseModel response = await apiService.get('inmuebles/$inmuebleId/galeria/first');
+      print('Response from getFirstImage: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error fetching first image: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error fetching first image: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error fetching first image: $e',
       );
     }
   }

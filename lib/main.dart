@@ -58,14 +58,14 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    // Initialize blockchain after the app is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      initializeBlockchain(context);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Asegúrate de que el Provider esté disponible antes de inicializar
+    /*WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await initializeBlockchain(context);
+    });*/
     return MultiProvider(
       providers: [
         // Use the provided UrlConfigProvider if available, otherwise create a new one
@@ -96,7 +96,7 @@ class _MyAppState extends State<MyApp> {
         ),
         initialRoute: '/',
         routes: {
-          '/': (context) => InmuebleScreen(),
+          '/': (context) => InmuebleScreen(initializeBlockchain: true),
           '/login': (context) => LoginScreen(),
           '/register': (context) => RegisterScreen(),
           '/splash': (context) => SplashScreen(),

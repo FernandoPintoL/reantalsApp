@@ -30,13 +30,10 @@ class ServicioBasicoModel {
   }
 
   static List<ServicioBasicoModel> fromJsonList(dynamic jsonList) {
-    if (jsonList is List) {
-      return jsonList.map((item) => ServicioBasicoModel.fromJson(item)).toList();
-    } else if (jsonList is Map<String, dynamic>) {
-      return [ServicioBasicoModel.fromJson(jsonList)];
-    } else {
-      return [];
-    }
+    if (jsonList == null) return [];
+    return List<ServicioBasicoModel>.from(
+      jsonList.map((item) => ServicioBasicoModel.fromJson(item)),
+    );
   }
 
   // Default list of basic services

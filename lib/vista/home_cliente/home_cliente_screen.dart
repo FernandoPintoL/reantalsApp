@@ -12,6 +12,26 @@ class HomeClienteScreen extends StatefulWidget {
 class _HomeClienteScreenState extends State<HomeClienteScreen> {
   bool _isLoading = false;
 
+  Future<void> _cerrarSession() async {
+    setState(() {
+      _isLoading = true;
+    });
+    bool result = await context.read<AuthenticatedProvider>().logout();
+    if (!result) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al cerrar sesión')),
+      );
+      return;
+    }
+    setState(() {
+      _isLoading = false;
+    });
+    Navigator.of(context).pushReplacementNamed('/');
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthenticatedProvider>().userActual;
@@ -24,7 +44,7 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
             icon: const Icon(Icons.logout),
             onPressed: () {
               // Implement logout functionality
-              Navigator.of(context).pushReplacementNamed('/');
+              _cerrarSession();
             },
             tooltip: 'Cerrar Sesión',
           ),

@@ -4,10 +4,12 @@ import '../../models/servicio_basico_model.dart';
 import '../../models/session_model.dart';
 import '../../models/solicitud_alquiler_model.dart';
 import '../../models/user_model.dart';
+import '../../models/galeria_inmueble_model.dart';
 import '../../negocio/SessionNegocio.dart';
 import '../../negocio/UserNegocio.dart';
 import '../../providers/inmueble_provider.dart';
 import '../../providers/solicitud_alquiler_provider.dart';
+import '../../services/ApiService.dart';
 import 'package:provider/provider.dart';
 
 class SolicitudAlquilerScreen extends StatefulWidget {
@@ -32,12 +34,33 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
   bool _isLoading = false;
   UserModel? _currentUser;
   SessionModelo? _sessionModel;
+  List<dynamic> _galeriaInmueble = [];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
     _loadServicios();
+    _loadGaleriaInmueble();
+  }
+
+  Future<void> _loadGaleriaInmueble() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await context.read<InmuebleProvider>().loadInmuebleGaleria(widget.inmueble.id);
+      setState(() {
+        _galeriaInmueble = context.read<InmuebleProvider>().galeriaInmueble;
+      });
+    } catch (e) {
+      print('Error loading gallery images: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _loadUser() async {
@@ -218,6 +241,59 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
                     ),
 
                     const SizedBox(height: 24),
+
+                    // Property images gallery
+                    if (_galeriaInmueble.isNotEmpty) ...[
+                      Text(
+                        'Imágenes del Inmueble',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _galeriaInmueble.length,
+                          itemBuilder: (context, index) {
+                            final image = _galeriaInmueble[index];
+                            String photoPath;
+
+                            // Handle different types of gallery items
+                            if (image is Map) {
+                              photoPath = image['photo_path'] ?? "";
+                            } else if (image is GaleriaInmuebleModel) {
+                              photoPath = image.photoPath ?? "";
+                            } else {
+                              photoPath = "";
+                            }
+
+                            final String imagePath = '${ApiService.getInstance().baseUrlImage}/$photoPath';
+
+                            return Container(
+                              width: 200,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  imagePath,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Center(
+                                      child: Icon(Icons.error, color: Colors.red),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
 
                     // Services selection section
                     Text(

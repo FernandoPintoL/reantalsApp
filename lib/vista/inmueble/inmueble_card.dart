@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/inmueble_model.dart';
+import '../components/image_profile_inmueble.dart';
 class InmuebleCard extends StatelessWidget {
   final InmuebleModel inmueble;
   final VoidCallback? onContractRequest;
@@ -22,9 +23,11 @@ class InmuebleCard extends StatelessWidget {
             height: 200,
             width: double.infinity,
             color: Colors.grey[300],
-            child: const Center(
-              child: Icon(Icons.home, size: 50),
-            ),
+            child: ImageProfileInmueble(
+              imageUrl: "",
+              isIcon: false,
+              inmuebleId: inmueble.id,
+            )
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

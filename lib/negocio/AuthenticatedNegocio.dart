@@ -39,6 +39,14 @@ class AuthenticatedNegocio {
     return await sessionNegocio.getSession();
   }
 
+  Future<UserModel?> getUserSession() async {
+    SessionModelo? session = await sessionNegocio.getSession();
+    if (session != null) {
+      return await userNegocio.getUser(session.userId!);
+    }
+    return null;
+  }
+
   // Obtener el usuario autenticado desde una API
   Future<ResponseModel> login(String email, String password) async {
     final String endpoint = 'login';
@@ -65,6 +73,49 @@ class AuthenticatedNegocio {
         isMessageError: true,
         statusCode: 500,
         message: 'Error al realizar la solicitud',
+        messageError: e.toString(),
+        data: null,
+      );
+    }
+  }
+
+  // Cerrar sesión de usuario
+  Future<ResponseModel> logout(int userId) async {
+    final String endpoint = 'logout';
+    try {
+      ResponseModel response = await apiService.post(endpoint, {});
+      if (response.isSuccess) {
+        bool resultSession = await sessionNegocio.deleteSession(userId);
+        bool resultUser = await userNegocio.deleteUser(userId.toString());
+        return ResponseModel(
+          isSuccess: resultSession && resultUser,
+          isRequest: response.isRequest,
+          isMessageError: response.isMessageError,
+          statusCode: response.statusCode,
+          message: response.message,
+          messageError: response.messageError,
+          data: null, // No hay datos que retornar en este caso
+        );
+      } else {
+        return ResponseModel(
+          isSuccess: false,
+          isRequest: response.isRequest,
+          isMessageError: true,
+          statusCode: response.statusCode,
+          message: 'Error al cerrar sesión',
+          messageError: response.messageError,
+          data: null,
+        );
+      }
+    } catch (e) {
+      // Manejar la excepción
+      print("Error al realizar la solicitud de cierre de sesión: $e");
+      return ResponseModel(
+        isSuccess: false,
+        isRequest: false,
+        isMessageError: true,
+        statusCode: 500,
+        message: 'Error al realizar la solicitud de cierre de sesión',
         messageError: e.toString(),
         data: null,
       );
