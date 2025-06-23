@@ -15,11 +15,8 @@ class AuthenticatedNegocio {
 
   // iniciar sesión de usuario
   Future<SessionModelo?> initSession(UserModel user) async {
-    print("Iniciando sesión para el usuario: ${user.id}");
     UserModel? existingUser = await userNegocio.getUser(user.id);
-    print("Usuario existente: ${existingUser?.email}");
     if(existingUser != null) {
-      print("Usuario ya existe: ${existingUser.email}");
       // Si el usuario ya existe, no lo insertamos de nuevo
       return await sessionNegocio.getSession();
     }

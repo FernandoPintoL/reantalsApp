@@ -14,7 +14,6 @@ class UserDao {
   }
   Future<UserModel?> getUser(int id) async {
     final Map<String, dynamic>? map = await database.queryById(AppDatabase.tableUser, id.toString());
-    print("UserDao getUser: $map");
     if (map != null) {
       return UserModel.mapToModel(map);
     }

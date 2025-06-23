@@ -3,21 +3,24 @@ import '../models/session_model.dart';
 import '../models/solicitud_alquiler_model.dart';
 import '../models/response_model.dart';
 import '../models/user_model.dart';
+import '../negocio/AuthenticatedNegocio.dart';
 import '../negocio/SolicitudAlquilerNegocio.dart';
 import '../negocio/SessionNegocio.dart';
 import '../negocio/UserNegocio.dart';
+import '../vista/components/message_widget.dart';
 
 class SolicitudAlquilerProvider extends ChangeNotifier {
   final SolicitudAlquilerNegocio _solicitudNegocio = SolicitudAlquilerNegocio();
-  final SessionNegocio _sessionNegocio = SessionNegocio();
-  final UserNegocio _userNegocio = UserNegocio();
-  SessionModelo? _sessionModel;
+  final AuthenticatedNegocio _authenticatedNegocio = AuthenticatedNegocio();
+
+  late ResponseModel _responseModel;
   
   List<SolicitudAlquilerModel> _solicitudes = [];
   SolicitudAlquilerModel? _selectedSolicitud;
   bool _isLoading = false;
   String? _message;
   UserModel? _currentUser;
+  MessageType _messageType = MessageType.info;
 
   SolicitudAlquilerProvider() {
     _loadCurrentUser();
@@ -25,26 +28,25 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
 
   Future<void> _loadCurrentUser() async {
     try {
-      _sessionModel = await _sessionNegocio.getSession();
-      // cargar al usuario actual
-      if (_sessionModel != null && _sessionModel!.userId != null) {
-        _currentUser = await _userNegocio.getUser(_sessionModel!.userId!);
-      } else {
-        _currentUser = null;
+      print('Cargando usuario actual solicitud de alquiler...');
+      currentUser = await _authenticatedNegocio.getUserSession();
+      if (_currentUser == null) {
+        messageType = MessageType.info;
+        message = 'No se pudo cargar el usuario actual';
       }
     } catch (e) {
+      messageType = MessageType.error;
       print('Error loading current user: $e');
     }
   }
-
+  // el que realiza la solicitud de alquiler es el cliente, por lo que se asigna el userId del cliente a la solicitud
   Future<bool> createSolicitudAlquiler(SolicitudAlquilerModel solicitud) async {
-    _isLoading = true;
-    notifyListeners();
-    
+
     try {
-      if (_currentUser == null) {
+      isLoading = true;
+      if (solicitud.userId == null || solicitud.userId == 0) {
         await _loadCurrentUser();
-        if (_currentUser == null) {
+        if (currentUser == null) {
           message = 'No se pudo cargar el usuario actual';
           isLoading = false;
           return false;
@@ -55,12 +57,12 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
       SolicitudAlquilerModel solicitudWithUserId = SolicitudAlquilerModel(
         id: solicitud.id,
         inmuebleId: solicitud.inmuebleId,
-        userId: _currentUser!.id,
+        userId: currentUser!.id,
         estado: solicitud.estado,
         serviciosBasicos: solicitud.serviciosBasicos,
         mensaje: solicitud.mensaje,
         inmueble: solicitud.inmueble,
-        cliente: _currentUser,
+        cliente: currentUser,
       );
 
       ResponseModel response = await _solicitudNegocio.createSolicitudAlquiler(solicitudWithUserId);
@@ -68,7 +70,7 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
       if (response.isSuccess && response.data != null) {
         _selectedSolicitud = SolicitudAlquilerModel.fromMap(response.data);
         message = 'Solicitud de alquiler enviada exitosamente';
-        await loadSolicitudesByUserId(); // Refresh the list
+        await loadSolicitudesByClienteId(); // Refresh the list
         isLoading = false;
         return true;
       } else {
@@ -83,10 +85,10 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadSolicitudesByUserId() async {
-    if (_currentUser == null) {
+  Future<void> loadSolicitudesByClienteId() async {
+    if (currentUser == null) {
       await _loadCurrentUser();
-      if (_currentUser == null) {
+      if (currentUser == null) {
         message = 'No se pudo cargar el usuario actual';
         return;
       }
@@ -96,7 +98,7 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      ResponseModel response = await _solicitudNegocio.getSolicitudesByUserId(_currentUser!.id);
+      ResponseModel response = await _solicitudNegocio.getSolicitudesByClienteId(currentUser!.id);
       
       if (response.isSuccess && response.data != null) {
         solicitudes = SolicitudAlquilerModel.fromJsonList(response.data);
@@ -112,9 +114,9 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
   }
 
   Future<void> loadSolicitudesByPropietarioId() async {
-    if (_currentUser == null) {
+    if (currentUser == null) {
       await _loadCurrentUser();
-      if (_currentUser == null) {
+      if (currentUser == null) {
         message = 'No se pudo cargar el usuario actual';
         return;
       }
@@ -124,7 +126,7 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      ResponseModel response = await _solicitudNegocio.getSolicitudesByPropietarioId(_currentUser!.id);
+      ResponseModel response = await _solicitudNegocio.getSolicitudesByPropietarioId(currentUser!.id);
       
       if (response.isSuccess && response.data != null) {
         solicitudes = SolicitudAlquilerModel.fromJsonList(response.data);
@@ -150,10 +152,10 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
         message = 'Estado de la solicitud actualizado exitosamente';
         
         // Refresh the list based on user type
-        if (_currentUser?.tipoUsuario == 'propietario') {
+        if (currentUser?.tipoUsuario == 'propietario') {
           await loadSolicitudesByPropietarioId();
         } else {
-          await loadSolicitudesByUserId();
+          await loadSolicitudesByClienteId();
         }
         
         isLoading = false;
@@ -199,4 +201,15 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
   SolicitudAlquilerModel? get selectedSolicitud => _selectedSolicitud;
   
   UserModel? get currentUser => _currentUser;
+  set currentUser(UserModel? value) {
+    _currentUser = value;
+    notifyListeners();
+  }
+
+  MessageType get messageType => _messageType;
+  set messageType(MessageType value) {
+    _messageType = value;
+    notifyListeners();
+  }
+
 }

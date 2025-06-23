@@ -35,8 +35,6 @@ class UserModel {
 
   // Create a UserModel from a Firebase document
   factory UserModel.mapToModel(Map<String, dynamic> doc) {
-    print('mapToModel: ${doc['tipoUsuario']}');
-    print('mapToModel: ${doc['propietario']}');
     return UserModel(
       id: doc['id'] ?? 0,
       email: doc['email'] ?? '',

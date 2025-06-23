@@ -33,7 +33,6 @@ class InmuebleModel {
   });
 
   factory InmuebleModel.mapToModel(Map<String, dynamic> doc) {
-    print('InmuebleModel.mapToModel: ${doc['servicios_basicos']}');
     InmuebleModel model = InmuebleModel(
       id: doc['id'] ?? 0,
       userId: doc['user_id'] ?? 0,

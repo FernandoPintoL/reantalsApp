@@ -1,13 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:rentals/controllers_providers/authenticated_provider.dart';
 import 'package:rentals/vista/components/Loading.dart';
 import '../../models/inmueble_model.dart';
-import '../../negocio/InmuebleNegocio.dart';
 import '../../negocio/SessionNegocio.dart';
 import '../../controllers_providers/blockchain_provider.dart';
 import '../../controllers_providers/inmueble_provider.dart';
+import '../components/message_widget.dart';
 import 'inmueble_card.dart';
 import 'solicitud_alquiler_screen.dart';
 
@@ -28,22 +29,33 @@ class _InmuebleScreenState extends State<InmuebleScreen> {
     super.initState();
     if (widget.initializeBlockchain) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final blockchainProvider = Provider.of<BlockchainProvider>(context, listen: false);
+        print('Initializing blockchain provider...');
+        final blockchainProvider = Provider.of<BlockchainProvider>(
+          context,
+          listen: false,
+        );
+
+        // Cargar valores desde el archivo .env
+        final rpcUrl = dotenv.env['BLOCKCHAIN_RPC_URL_LOCAL']!;
+        final privateKey = dotenv.env['INFURA_API_KEY']!;
+        final chainId = int.parse(dotenv.env['BLOCKCHAIN_CHAIN_ID_LOCAL']!);
 
         // Initialize with test network values
         await blockchainProvider.initialize(
-          rpcUrl: 'https://sepolia.infura.io/v3/your-infura-key', // Replace with actual Infura key
-          privateKey: '0x0000000000000000000000000000000000000000000000000000000000000000', // Replace with actual private key
-          chainId: 11155111, // Sepolia testnet
+          rpcUrl: rpcUrl,
+          privateKey: privateKey,
+          // Replace with actual private key
+          chainId: chainId, // Sepolia testnet
         );
       });
     }
   }
 
   Future<void> _loadPageForUser() async {
-    if(context.read<AuthenticatedProvider>().userActual != null) {
+    if (context.read<AuthenticatedProvider>().userActual != null) {
       // decidir si es usuario cliente o propietario
-      if(context.read<AuthenticatedProvider>().userActual!.tipoUsuario == 'propietario') {
+      if (context.read<AuthenticatedProvider>().userActual!.tipoUsuario ==
+          'propietario') {
         // User is a property owner, navigate to property management screen
         Navigator.of(context).pushNamed('/homePropietario');
       } else {
@@ -74,9 +86,7 @@ class _InmuebleScreenState extends State<InmuebleScreen> {
       // User is logged in, navigate to rental request screen
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => SolicitudAlquilerScreen(
-            inmueble: inmueble,
-          ),
+          builder: (context) => SolicitudAlquilerScreen(inmueble: inmueble),
         ),
       );
     }
@@ -89,17 +99,32 @@ class _InmuebleScreenState extends State<InmuebleScreen> {
         title: const Text('Inmuebles Disponibles'),
         actions: [
           IconButton(
-            icon: context.read<AuthenticatedProvider>().userActual != null ? Icon(CupertinoIcons.person_alt_circle) : Icon(Icons.login),
+            icon:
+                context.read<AuthenticatedProvider>().userActual != null
+                    ? Icon(CupertinoIcons.person_alt_circle)
+                    : Icon(Icons.login),
             onPressed: () => _loadPageForUser(),
-            tooltip: context.read<AuthenticatedProvider>().userActual != null ? 'Iniciar Sesión' : 'Ver Perfil',
+            tooltip:
+                context.read<AuthenticatedProvider>().userActual != null
+                    ? 'Iniciar Sesión'
+                    : 'Ver Perfil',
           ),
         ],
       ),
       body:
           context.watch<InmuebleProvider>().isLoading
-              ? Loading(title: "Cargando pantalla principal",)
-              : context.watch<InmuebleProvider>().message != null
-              ? Center(child: Text(context.watch<InmuebleProvider>().message ?? ''))
+              ? Loading(title: "Cargando pantalla principal")
+              : context.watch<InmuebleProvider>().message != null && context.watch<InmuebleProvider>().messageType == MessageType.error || context.watch<InmuebleProvider>().messageType == MessageType.info
+              ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: MessageWidget(
+                    message: context.watch<InmuebleProvider>().message == null
+                        ? 'No hay propiedades disponibles'
+                        : context.watch<InmuebleProvider>().message!,
+                    type: context.watch<InmuebleProvider>().messageType,
+                ),
+              ))
               : context.watch<InmuebleProvider>().inmuebles.isEmpty
               ? const Center(child: Text('No hay propiedades disponibles'))
               : RefreshIndicator(
@@ -107,7 +132,8 @@ class _InmuebleScreenState extends State<InmuebleScreen> {
                 child: ListView.builder(
                   itemCount: context.watch<InmuebleProvider>().inmuebles.length,
                   itemBuilder: (context, index) {
-                    InmuebleModel inmueble = context.watch<InmuebleProvider>().inmuebles[index];
+                    InmuebleModel inmueble =
+                        context.watch<InmuebleProvider>().inmuebles[index];
                     return InmuebleCard(
                       inmueble: inmueble,
                       onContractRequest: () => _handleContractRequest(inmueble),

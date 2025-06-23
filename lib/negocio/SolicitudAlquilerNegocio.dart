@@ -26,9 +26,9 @@ class SolicitudAlquilerNegocio {
     }
   }
 
-  Future<ResponseModel> getSolicitudesByUserId(int userId) async {
+  Future<ResponseModel> getSolicitudesByClienteId(int userId) async {
     try {
-      ResponseModel response = await apiService.get('solicitudes-alquiler/user/$userId');
+      ResponseModel response = await apiService.get('solicitudes-alquiler/cliente/$userId');
       print('Response from getSolicitudesByUserId: ${response.toJson()}');
       return response;
     } catch (e) {

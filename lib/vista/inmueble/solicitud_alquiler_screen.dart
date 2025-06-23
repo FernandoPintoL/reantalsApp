@@ -27,66 +27,26 @@ class SolicitudAlquilerScreen extends StatefulWidget {
 class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _mensajeController = TextEditingController();
-  final SessionNegocio _sessionNegocio = SessionNegocio();
-  final UserNegocio _userNegocio = UserNegocio();
 
   List<ServicioBasicoModel> _serviciosBasicos = [];
-  bool _isLoading = false;
-  UserModel? _currentUser;
-  SessionModelo? _sessionModel;
-  List<dynamic> _galeriaInmueble = [];
+  List<GaleriaInmuebleModel> _galeriaInmueble = [];
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
     _loadServicios();
     _loadGaleriaInmueble();
   }
 
   Future<void> _loadGaleriaInmueble() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
-      await context.read<InmuebleProvider>().loadInmuebleGaleria(widget.inmueble.id);
+      List<GaleriaInmuebleModel> result = await context.read<InmuebleProvider>().loadInmuebleGaleria(widget.inmueble.id);
       setState(() {
-        _galeriaInmueble = context.read<InmuebleProvider>().galeriaInmueble;
+        _galeriaInmueble = result;
       });
     } catch (e) {
       print('Error loading gallery images: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
-  }
-
-  Future<void> _loadUser() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      _sessionModel = await _sessionNegocio.getSession();
-      if (_sessionModel != null && _sessionModel!.userId != null) {
-        _currentUser = await _userNegocio.getUser(_sessionModel!.userId!);
-      } else {
-        _currentUser = null;
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al cargar el usuario: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   void _loadServicios() {
@@ -104,7 +64,7 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
 
   Future<void> _submitRequest() async {
     if (_formKey.currentState!.validate()) {
-      if (_currentUser == null) {
+      if (context.read<SolicitudAlquilerProvider>().currentUser == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Debe iniciar sesión para solicitar un alquiler'),
@@ -126,20 +86,14 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
         );
         return;
       }
-
-      setState(() {
-        _isLoading = true;
-      });
-
       try {
         // Create solicitud model
         final solicitud = SolicitudAlquilerModel(
           inmuebleId: widget.inmueble.id,
-          userId: _currentUser!.id,
+          userId: context.read<SolicitudAlquilerProvider>().currentUser!.id,
           serviciosBasicos: selectedServices,
           mensaje: _mensajeController.text,
-          cliente: _currentUser,
-          inmueble: widget.inmueble,
+          inmueble: widget.inmueble
         );
 
         // Use the provider to submit the request
@@ -173,12 +127,6 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
             ),
           );
         }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
       }
     }
   }
@@ -187,9 +135,9 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Solicitar Alquiler'),
+        title: const Text('Solicitar Alquiler de Inmueble'),
       ),
-      body: _isLoading
+      body: context.watch<SolicitudAlquilerProvider>().isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -259,15 +207,8 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
                             String photoPath;
 
                             // Handle different types of gallery items
-                            if (image is Map) {
-                              photoPath = image['photo_path'] ?? "";
-                            } else if (image is GaleriaInmuebleModel) {
-                              photoPath = image.photoPath ?? "";
-                            } else {
-                              photoPath = "";
-                            }
 
-                            final String imagePath = '${ApiService.getInstance().baseUrlImage}/$photoPath';
+                            final String imagePath = '${ApiService.getInstance().baseUrlImage}/${image.photoPath}';
 
                             return Container(
                               width: 200,

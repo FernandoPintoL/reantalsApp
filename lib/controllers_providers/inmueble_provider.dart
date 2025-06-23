@@ -100,23 +100,19 @@ class InmuebleProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadInmuebleGaleria(int inmuebleId) async {
+  Future<List<GaleriaInmuebleModel>> loadInmuebleGaleria(int inmuebleId) async {
     try {
-      isLoading = true;
+      List<GaleriaInmuebleModel> result = [];
       _responseModel = await _inmuebleNegocio.getInmuebleGaleria(inmuebleId);
       if (_responseModel.isSuccess && _responseModel.data != null) {
-        galeriaInmueble = GaleriaInmuebleModel.fromJsonList(_responseModel.data);
-        message = _responseModel.message ?? 'Galería de imágenes cargada exitosamente';
-        messageType = MessageType.success;
-      } else {
-        messageType = MessageType.info;
-        message = _responseModel.messageError ?? 'No se encontraron imágenes para este inmueble';
+        result = GaleriaInmuebleModel.fromJsonList(_responseModel.data);
       }
+      return result;
     } catch (e) {
       messageType = MessageType.error;
       message = 'Error al cargar las imágenes del inmueble: $e';
-    } finally {
-      isLoading = false;
+      print('Error al cargar las imágenes del inmueble: $e');
+      return [];
     }
   }
 
