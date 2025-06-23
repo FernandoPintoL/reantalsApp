@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../models/contrato_model.dart';
-import '../../../providers/contrato_provider.dart';
+import '../../../models/pago_model.dart';
+import '../../../controllers_providers/contrato_provider.dart';
+import '../../../controllers_providers/pago_provider.dart';
 
 class DetalleContratoScreen extends StatefulWidget {
   final ContratoModel contrato;
@@ -16,55 +18,164 @@ class DetalleContratoScreen extends StatefulWidget {
   State<DetalleContratoScreen> createState() => _DetalleContratoScreenState();
 }
 
-class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
+class _DetalleContratoScreenState extends State<DetalleContratoScreen> with SingleTickerProviderStateMixin {
   final dateFormat = DateFormat('dd/MM/yyyy');
+  late TabController _tabController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+
+    // Load payments for this contract
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPagos();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPagos() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await context.read<PagoProvider>().loadPagosByContratoId(widget.contrato.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar los pagos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle del Contrato'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Detalles'),
+            Tab(text: 'Pagos'),
+          ],
+        ),
       ),
-      body: Consumer<ContratoProvider>(
-        builder: (context, provider, child) {
-          final contrato = widget.contrato;
-          
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Contract header
-                _buildContractHeader(contrato),
-                const SizedBox(height: 24),
-                
-                // Property information
-                _buildSectionTitle('Información del Inmueble'),
-                _buildPropertyInfo(contrato),
-                const SizedBox(height: 24),
-                
-                // Contract details
-                _buildSectionTitle('Detalles del Contrato'),
-                _buildContractDetails(contrato),
-                const SizedBox(height: 24),
-                
-                // Contract conditions
-                _buildSectionTitle('Condiciones del Contrato'),
-                _buildContractConditions(contrato),
-                const SizedBox(height: 24),
-                
-                // Blockchain information
-                _buildSectionTitle('Información Blockchain'),
-                _buildBlockchainInfo(contrato),
-                const SizedBox(height: 24),
-                
-                // Action buttons
-                _buildActionButtons(contrato, provider),
-              ],
-            ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildDetallesTab(),
+          _buildPagosTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetallesTab() {
+    return Consumer<ContratoProvider>(
+      builder: (context, provider, child) {
+        final contrato = widget.contrato;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Contract header
+              _buildContractHeader(contrato),
+              const SizedBox(height: 24),
+
+              // Property information
+              _buildSectionTitle('Información del Inmueble'),
+              _buildPropertyInfo(contrato),
+              const SizedBox(height: 24),
+
+              // Contract details
+              _buildSectionTitle('Detalles del Contrato'),
+              _buildContractDetails(contrato),
+              const SizedBox(height: 24),
+
+              // Contract conditions
+              _buildSectionTitle('Condiciones del Contrato'),
+              _buildContractConditions(contrato),
+              const SizedBox(height: 24),
+
+              // Blockchain information
+              _buildSectionTitle('Información Blockchain'),
+              _buildBlockchainInfo(contrato),
+              const SizedBox(height: 24),
+
+              // Action buttons
+              _buildActionButtons(contrato, provider),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPagosTab() {
+    return Consumer<PagoProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading || _isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.pagos.isEmpty) {
+          return const Center(
+            child: Text('No hay pagos registrados para este contrato'),
           );
-        },
-      ),
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: provider.pagos.length,
+          itemBuilder: (context, index) {
+            final pago = provider.pagos[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              child: ListTile(
+                title: Text('Pago #${pago.id}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Fecha: ${dateFormat.format(pago.fechaPago)}'),
+                    Text('Monto: \$${pago.monto.toStringAsFixed(2)}'),
+                    Text('Estado: ${pago.estado}'),
+                  ],
+                ),
+                trailing: pago.blockChainId != null
+                    ? const Tooltip(
+                        message: 'Verificado en blockchain',
+                        child: Icon(Icons.verified, color: Colors.green),
+                      )
+                    : null,
+                onTap: () {
+                  // Show payment details
+                  _showPaymentDetailsDialog(pago);
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -156,7 +267,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
 
   Widget _buildPropertyInfo(ContratoModel contrato) {
     final inmueble = contrato.inmueble;
-    
+
     if (inmueble == null) {
       return const Card(
         child: Padding(
@@ -165,7 +276,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
         ),
       );
     }
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -298,7 +409,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
         ),
       );
     }
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -437,14 +548,22 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
                 ),
               ),
             ] else if (contrato.estado.toLowerCase() == 'activo') ...[
+              ElevatedButton.icon(
+                onPressed: () {
+                  _showPaymentDialog(context, contrato, provider);
+                },
+                icon: const Icon(Icons.payment),
+                label: const Text('Realizar Pago Mensual'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () {
-                  // TODO: Implement payment history
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Funcionalidad en desarrollo: Ver historial de pagos'),
-                    ),
-                  );
+                  _tabController.animateTo(1); // Switch to payments tab
                 },
                 icon: const Icon(Icons.history),
                 label: const Text('Ver Historial de Pagos'),
@@ -533,6 +652,11 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
 
   void _showPaymentDialog(
       BuildContext context, ContratoModel contrato, ContratoProvider provider) {
+    final montoController = TextEditingController(text: contrato.monto.toString());
+    final fechaPagoController = TextEditingController(
+      text: dateFormat.format(DateTime.now()),
+    );
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -542,15 +666,27 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Vas a realizar el pago del primer mes de alquiler por un monto de \$${contrato.monto.toStringAsFixed(2)}',
+              'Vas a realizar el pago del alquiler por un monto de \$${contrato.monto.toStringAsFixed(2)}',
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Este pago activará tu contrato de alquiler.',
+            Text(
+              contrato.fechaPago == null
+                  ? 'Este pago activará tu contrato de alquiler.'
+                  : 'Este pago se registrará como un pago mensual de tu contrato.',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
               ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: montoController,
+              decoration: const InputDecoration(
+                labelText: 'Monto',
+                border: OutlineInputBorder(),
+                prefixText: '\$ ',
+              ),
+              keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 16),
             const Text(
@@ -591,9 +727,66 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              final success = await provider.registrarPagoContrato(contrato.id, DateTime.now());
-              if (success) {
-                Navigator.pop(context); // Return to contracts list
+
+              try {
+                if (contrato.fechaPago == null) {
+                  // Initial payment to activate contract
+                  final success = await provider.registrarPagoContrato(contrato.id, DateTime.now());
+                  if (success) {
+                    // Refresh the contract
+                    await provider.loadContratosByUserId();
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Pago inicial registrado exitosamente'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  }
+                } else {
+                  // Regular monthly payment
+                  final pagoProvider = Provider.of<PagoProvider>(context, listen: false);
+
+                  final pago = PagoModel(
+                    contratoId: contrato.id,
+                    fechaPago: DateTime.now(),
+                    monto: double.tryParse(montoController.text) ?? contrato.monto,
+                    estado: 'completado',
+                  );
+
+                  final success = await pagoProvider.createPago(pago);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Pago registrado exitosamente'
+                              : 'Error al registrar el pago',
+                        ),
+                        backgroundColor: success ? Colors.green : Colors.red,
+                      ),
+                    );
+
+                    if (success) {
+                      // Refresh payments
+                      await _loadPagos();
+                      // Switch to payments tab
+                      _tabController.animateTo(1);
+                    }
+                  }
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al registrar el pago: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -601,6 +794,46 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> {
               foregroundColor: Colors.white,
             ),
             child: const Text('Confirmar Pago'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPaymentDetailsDialog(PagoModel pago) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Detalles del Pago #${pago.id}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Fecha: ${dateFormat.format(pago.fechaPago)}'),
+            const SizedBox(height: 8),
+            Text('Monto: \$${pago.monto.toStringAsFixed(2)}'),
+            const SizedBox(height: 8),
+            Text('Estado: ${pago.estado}'),
+            const SizedBox(height: 8),
+            if (pago.blockChainId != null) ...[
+              const Text(
+                'ID de Blockchain:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                pago.blockChainId!,
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cerrar'),
           ),
         ],
       ),

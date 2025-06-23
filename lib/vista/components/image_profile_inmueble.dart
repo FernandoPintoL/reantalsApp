@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:rentals/services/ApiService.dart';
-import 'package:rentals/providers/inmueble_provider.dart';
 import 'package:rentals/models/galeria_inmueble_model.dart';
+
+import '../../controllers_providers/inmueble_provider.dart';
 
 class ImageProfileInmueble extends StatefulWidget {
   final String imageUrl;

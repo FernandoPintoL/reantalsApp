@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../models/solicitud_alquiler_model.dart';
-import '../../../providers/solicitud_alquiler_provider.dart';
+import '../../../controllers_providers/solicitud_alquiler_provider.dart';
 import 'crear_contrato_screen.dart';
 
 class SolicitudesScreen extends StatefulWidget {

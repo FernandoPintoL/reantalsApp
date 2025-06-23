@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/authenticated_provider.dart';
-import '../../providers/inmueble_provider.dart';
+import '../../controllers_providers/authenticated_provider.dart';
+import '../../controllers_providers/inmueble_provider.dart';
+import '../../controllers_providers/contrato_provider.dart';
 import 'inmuebles/my_inmuebles_screen.dart';
 import 'inmuebles/detalle_inmuebles.dart';
 import 'solicitudes/solicitudes_screen.dart';
+import 'contratos/contratos_list_screen.dart';
 
 class HomePropietarioScreen extends StatefulWidget {
   const HomePropietarioScreen({super.key});
@@ -219,9 +221,14 @@ class _HomePropietarioScreenState extends State<HomePropietarioScreen> with Sing
                   leading: const Icon(Icons.description, color: Colors.green),
                   trailing: const Icon(Icons.arrow_forward_ios),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Funcionalidad en desarrollo: Contratos Activos'),
+                    // Load contracts for the property owner
+                    context.read<ContratoProvider>().loadContratosByPropietarioId();
+
+                    // Navigate to contracts list screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ContratosListScreen(),
                       ),
                     );
                   },

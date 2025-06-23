@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../models/contrato_model.dart';
-import '../../../providers/contrato_provider.dart';
+import '../../../controllers_providers/contrato_provider.dart';
 import 'detalle_contrato_screen.dart';
 
 class ContratosClienteScreen extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/authenticated_provider.dart';
+import '../../controllers_providers/authenticated_provider.dart';
 
 class HomeClienteScreen extends StatefulWidget {
   const HomeClienteScreen({super.key});

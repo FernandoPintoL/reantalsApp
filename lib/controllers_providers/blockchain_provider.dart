@@ -18,11 +18,7 @@ class BlockchainProvider extends ChangeNotifier {
   String? get contractAddress => _contractAddress;
   
   // Initialize the blockchain service
-  Future<bool> initialize({
-    required String rpcUrl,
-    required String privateKey,
-    required int chainId,
-  }) async {
+  Future<bool> initialize({required String rpcUrl, required String privateKey, required int chainId}) async {
     _isLoading = true;
     _message = 'Inicializando servicio blockchain...';
     notifyListeners();
@@ -75,11 +71,7 @@ class BlockchainProvider extends ChangeNotifier {
   }
   
   // Create a rental contract on the blockchain
-  Future<bool> createRentalContract(
-    ContratoModel contrato, 
-    UserModel propietario, 
-    UserModel cliente
-  ) async {
+  Future<bool> createRentalContract(ContratoModel contrato, UserModel propietario, UserModel cliente) async {
     if (!_isInitialized) {
       _message = 'El servicio blockchain no está inicializado';
       notifyListeners();

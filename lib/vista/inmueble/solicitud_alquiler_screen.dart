@@ -7,8 +7,8 @@ import '../../models/user_model.dart';
 import '../../models/galeria_inmueble_model.dart';
 import '../../negocio/SessionNegocio.dart';
 import '../../negocio/UserNegocio.dart';
-import '../../providers/inmueble_provider.dart';
-import '../../providers/solicitud_alquiler_provider.dart';
+import '../../controllers_providers/inmueble_provider.dart';
+import '../../controllers_providers/solicitud_alquiler_provider.dart';
 import '../../services/ApiService.dart';
 import 'package:provider/provider.dart';
 

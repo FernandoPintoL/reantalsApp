@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../models/solicitud_alquiler_model.dart';
 import '../../../models/contrato_model.dart';
-import '../../../providers/contrato_provider.dart';
+import '../../../controllers_providers/contrato_provider.dart';
 
 class CrearContratoScreen extends StatefulWidget {
   final SolicitudAlquilerModel solicitud;

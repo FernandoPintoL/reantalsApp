@@ -76,39 +76,39 @@ class AuthenticatedProvider extends ChangeNotifier{
   }
 
   Future<void> login(AuthenticatedScreenState screen) async {
-    isLoading = true;
-    authenticatedScreenState = screen;
-    ResponseModel responseModel = await authenticatedNegocio.login(emailController.text, passwordController.text);
-    if (responseModel.statusCode == 200) {
-      message = responseModel.message;
+    try{
+      isLoading = true;
+      authenticatedScreenState = screen;
+      ResponseModel responseModel = await authenticatedNegocio.login(emailController.text, passwordController.text);
       print('Response model en provider: ${responseModel.data}');
-      userActual = UserModel.mapToModel(responseModel.data);
-      if(userActual == null) {
+      if (responseModel.statusCode == 200) {
+        message = responseModel.message;
+        print('Response model en provider: ${responseModel.data}');
+        userActual = UserModel.mapToModel(responseModel.data);
+        messageType = responseModel.isSuccess ? MessageType.success : MessageType.error;
+        isSuccess = responseModel.isSuccess;
+        message = responseModel.isSuccess ? responseModel.message : ('${responseModel.message}\n${responseModel.messageError}').toString();
+        isLoading = false;
+        print('Usuario actual: ${userActual!.tipoUsuario}');
+        if(userActual!.tipoUsuario == 'propietario') {
+          print("moviendo a dashboard propietario");
+          authenticatedScreenState.navigateToHomePropietario();
+        } else {
+          print("moviendo a dashboard cliente");
+          authenticatedScreenState.navigateToHomeCliente();
+        }
+      } else {
         messageType = MessageType.error;
         isLoading = false;
-        message = 'Error al obtener el usuario';
-        return;
+        isSuccess = false;
+        message = ('${responseModel.message}\n${responseModel.messageError}').toString();
       }
-      messageType = MessageType.success;
-      isSuccess = true;
-      isLoading = false;
-      print('Usuario actual: ${userActual!.tipoUsuario}');
-      if(userActual!.tipoUsuario == 'propietario') {
-        print("moviendo a dashboard propietario");
-        authenticatedScreenState.navigateToHomePropietario();
-      } else {
-        print("moviendo a dashboard cliente");
-        authenticatedScreenState.navigateToHomeCliente();
-      }
-    } else {
+    } catch (e) {
       messageType = MessageType.error;
       isLoading = false;
       isSuccess = false;
-      message = ('${responseModel.message}\n${responseModel.messageError}').toString();
+      message = 'Error al iniciar sesión: $e';
     }
-    messageType = MessageType.error;
-    isLoading = false;
-    isSuccess = false;
   }
 
   Future<void> createUser(AuthenticatedScreenState screen) async {
@@ -169,20 +169,25 @@ class AuthenticatedProvider extends ChangeNotifier{
   }
 
   Future<UserModel?> getUserSession() async {
-    isLoading = true;
-    UserModel? userAct = await authenticatedNegocio.getUserSession();
-    if (userAct != null) {
-      messageType = MessageType.success;
-      message = 'Existe un usuario autenticado';
-      isSuccess = true;
-      print('Usuario actual: ${userAct!.tipoUsuario}');
-    } else {
-      messageType = MessageType.error;
-      isSuccess = false;
-      message = 'Error al obtener la sesión del usuario';
+    try{
+      isLoading = true;
+      UserModel? userAct = await authenticatedNegocio.getUserSession();
+      if (userAct != null) {
+        messageType = MessageType.success;
+        message = 'Existe un usuario autenticado';
+        isSuccess = true;
+        print('Usuario actual: ${userAct.tipoUsuario}');
+      } else {
+        messageType = MessageType.info;
+        isSuccess = false;
+        message = 'Iniciar sesión para continuar';
+      }
+      isLoading = false;
+      return userAct;
+    } catch (e) {
+      message = 'Error al obtener la sesión del usuario: $e';
+      return null;
     }
-    isLoading = false;
-    return userAct;
   }
 
   Future<bool> logout() async {

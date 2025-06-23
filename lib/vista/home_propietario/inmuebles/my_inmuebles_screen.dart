@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../providers/inmueble_provider.dart';
+import '../../../controllers_providers/inmueble_provider.dart';
 import '../../../models/inmueble_model.dart';
 import '../../components/Loading.dart';
 import '../../components/image_profile_inmueble.dart';

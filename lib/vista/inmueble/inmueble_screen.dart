@@ -1,13 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rentals/providers/authenticated_provider.dart';
+import 'package:rentals/controllers_providers/authenticated_provider.dart';
 import 'package:rentals/vista/components/Loading.dart';
 import '../../models/inmueble_model.dart';
 import '../../negocio/InmuebleNegocio.dart';
 import '../../negocio/SessionNegocio.dart';
-import '../../providers/blockchain_provider.dart';
-import '../../providers/inmueble_provider.dart';
+import '../../controllers_providers/blockchain_provider.dart';
+import '../../controllers_providers/inmueble_provider.dart';
 import 'inmueble_card.dart';
 import 'solicitud_alquiler_screen.dart';
 

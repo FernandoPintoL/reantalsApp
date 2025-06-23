@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rentals/providers/authenticated_provider.dart';
+import '../../controllers_providers/authenticated_provider.dart';
 import '../components/app_icon_widget.dart';
+import '../components/message_widget.dart';
 import '../interfaces/authenticated_screen_state.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -70,18 +71,11 @@ class _LoginScreenState extends State<LoginScreen> implements AuthenticatedScree
                         ),
                         const SizedBox(height: 30),
                         if (context.watch<AuthenticatedProvider>().message != null)
-                          Container(
-                            padding: const EdgeInsets.all(8.0),
-                            margin: const EdgeInsets.only(bottom: 16.0),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade100,
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Text(
-                              context.watch<AuthenticatedProvider>().message!,
-                              style: TextStyle(color: Colors.red.shade800),
-                            ),
+                          MessageWidget(
+                            message: context.watch<AuthenticatedProvider>().message!,
+                            type: context.watch<AuthenticatedProvider>().messageType,
                           ),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: context.watch<AuthenticatedProvider>().emailController,
                           focusNode: context.watch<AuthenticatedProvider>().emailFocusNode,

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.10;
 
 /**
  * @title RentalContract
@@ -11,22 +11,24 @@ contract RentalContract {
     
     // Contract structure
     struct RentalAgreement {
-        uint256 contractId;        // ID of the contract in the conventional system
-        address landlord;          // Wallet address of the property owner
-        address tenant;            // Wallet address of the tenant
-        uint256 propertyId;        // ID of the property in the conventional system
-        uint256 rentAmount;        // Monthly rent amount (in wei)
-        uint256 depositAmount;     // Security deposit amount (in wei)
-        uint256 startDate;         // Start date of the rental period (timestamp)
-        uint256 endDate;           // End date of the rental period (timestamp)
-        uint256 lastPaymentDate;   // Date of the last payment (timestamp)
-        ContractState state;       // Current state of the contract
-        string termsHash;          // IPFS hash of the contract terms document
+        uint256 contractId;        // Identificación del contrato en el sistema convencional
+        address landlord;          // Dirección de la billetera del propietario de la propiedad
+        address tenant;            // Dirección de la billetera del inquilino
+        uint256 propertyId;        // Identificación del inmueble en el sistema convencional
+        uint256 rentAmount;        // Monto del alquiler mensual (en wei)
+        uint256 depositAmount;     // Monto del depósito de seguridad (en wei)
+        uint256 startDate;         // Fecha de inicio del período de alquiler (marca de tiempo)
+        uint256 endDate;           // Fecha de finalización del período de alquiler (marca de tiempo)
+        uint256 lastPaymentDate;   // Fecha del último pago (sello de tiempo)
+        ContractState state;       // Estado actual del contrato
+        string termsHash;          // IPFS hash of the contract terms documentHash IPFS del documento de términos del contrato
     }
     
     // Mapping from contract ID to rental agreement
     mapping(uint256 => RentalAgreement) public rentalAgreements;
-    
+    // Owner of the contract
+    address public owner;
+
     // Events
     event ContractCreated(uint256 indexed contractId, address indexed landlord, address indexed tenant);
     event ContractApproved(uint256 indexed contractId);
@@ -34,7 +36,13 @@ contract RentalContract {
     event PaymentReceived(uint256 indexed contractId, uint256 amount, uint256 timestamp);
     event ContractTerminated(uint256 indexed contractId, string reason);
     event ContractExpired(uint256 indexed contractId);
-    
+    /**
+     * @dev Constructor to initialize the contract
+     */
+    constructor() {
+        owner = msg.sender;
+    }
+
     /**
      * @dev Create a new rental contract
      */
@@ -49,10 +57,14 @@ contract RentalContract {
         uint256 _endDate,
         string memory _termsHash
     ) public {
-        require(rentalAgreements[_contractId].contractId == 0, "Contract ID already exists");
-        require(_startDate < _endDate, "End date must be after start date");
-        
-        RentalAgreement memory newAgreement = RentalAgreement({
+        require(_contractId > 0, "El ID del contrato debe ser positivo");
+        require(rentalAgreements[_contractId].contractId == 0, "El ID del contrato ya existe");
+        require(_landlord != address(0), "Direccion de propietario no valida");
+        require(_tenant != address(0), "Direccion de inquilino no valida");
+        require(_startDate < _endDate, "La fecha de finalizacion debe ser posterior a la fecha de inicio");
+        require(_rentAmount > 0, "El importe del alquiler debe ser positivo");
+
+    RentalAgreement memory newAgreement = RentalAgreement({
             contractId: _contractId,
             landlord: _landlord,
             tenant: _tenant,
@@ -77,9 +89,9 @@ contract RentalContract {
     function approveContract(uint256 _contractId) public {
         RentalAgreement storage agreement = rentalAgreements[_contractId];
         
-        require(agreement.contractId != 0, "Contract does not exist");
-        require(agreement.state == ContractState.Pending, "Contract is not in pending state");
-        require(msg.sender == agreement.tenant, "Only tenant can approve the contract");
+        require(agreement.contractId != 0, "El contrato no existe");
+        require(agreement.state == ContractState.Pending, "El contrato no esta en estado pendiente");
+        require(msg.sender == agreement.tenant, "Solo el inquilino puede aprobar el contrato.");
         
         agreement.state = ContractState.Approved;
         
@@ -92,21 +104,21 @@ contract RentalContract {
     function makePayment(uint256 _contractId) public payable {
         RentalAgreement storage agreement = rentalAgreements[_contractId];
         
-        require(agreement.contractId != 0, "Contract does not exist");
+        require(agreement.contractId != 0, "El contrato no existe");
         require(agreement.state == ContractState.Approved || agreement.state == ContractState.Active, 
-                "Contract must be approved or active");
-        require(msg.sender == agreement.tenant, "Only tenant can make payments");
+                "El contrato debe estar aprobado o activo");
+        require(msg.sender == agreement.tenant, "Solo el inquilino puede hacer pagos");
         
         // For first payment, check if deposit + first month rent is paid
         if (agreement.state == ContractState.Approved) {
             require(msg.value >= agreement.rentAmount + agreement.depositAmount, 
-                    "First payment must include deposit and first month rent");
+                    "El primer pago debe incluir el deposito y el primer mes de alquiler.");
             
             agreement.state = ContractState.Active;
             emit ContractActivated(_contractId);
         } else {
             // For subsequent payments, check if monthly rent is paid
-            require(msg.value >= agreement.rentAmount, "Payment must be at least the rent amount");
+            require(msg.value >= agreement.rentAmount, "El pago debe ser al menos el monto del alquiler.");
         }
         
         // Transfer the payment to the landlord
@@ -124,10 +136,10 @@ contract RentalContract {
     function terminateContract(uint256 _contractId, string memory _reason) public {
         RentalAgreement storage agreement = rentalAgreements[_contractId];
         
-        require(agreement.contractId != 0, "Contract does not exist");
-        require(agreement.state == ContractState.Active, "Contract must be active");
+        require(agreement.contractId != 0, "El contrato no existe");
+        require(agreement.state == ContractState.Active, "El contrato debe estar activo.");
         require(msg.sender == agreement.landlord || msg.sender == agreement.tenant, 
-                "Only landlord or tenant can terminate the contract");
+                "Solo el propietario o el inquilino pueden rescindir el contrato");
         
         agreement.state = ContractState.Terminated;
         
@@ -140,8 +152,8 @@ contract RentalContract {
     function checkExpiration(uint256 _contractId) public {
         RentalAgreement storage agreement = rentalAgreements[_contractId];
         
-        require(agreement.contractId != 0, "Contract does not exist");
-        require(agreement.state == ContractState.Active, "Contract must be active");
+        require(agreement.contractId != 0, "El contrato no existe");
+        require(agreement.state == ContractState.Active, "El contrato debe estar activo.");
         
         if (block.timestamp > agreement.endDate) {
             agreement.state = ContractState.Expired;
@@ -165,7 +177,7 @@ contract RentalContract {
         string memory termsHash
     ) {
         RentalAgreement memory agreement = rentalAgreements[_contractId];
-        require(agreement.contractId != 0, "Contract does not exist");
+        require(agreement.contractId != 0, "El contrato no existe");
         
         return (
             agreement.landlord,

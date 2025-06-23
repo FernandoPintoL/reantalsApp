@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -10,7 +9,7 @@ import 'package:rentals/models/servicio_basico_model.dart';
 import 'package:rentals/services/ApiService.dart';
 import '../../../models/inmueble_model.dart';
 import '../../../models/galeria_inmueble_model.dart';
-import '../../../providers/inmueble_provider.dart';
+import '../../../controllers_providers/inmueble_provider.dart';
 import '../../components/Loading.dart';
 
 class DetalleInmueblesScreen extends StatefulWidget {
@@ -269,7 +268,7 @@ class _DetalleInmueblesScreenState extends State<DetalleInmueblesScreen> {
           final image = images[index];
           // String imagePath = '${ApiService.getInstance().baseUrlImage}/${image.photoPath}';
           final String imagePath = isExisting
-              ? '${dotenv.env['BASE_URL_IMAGE']}/${image.photoPath}'
+              ? '${ApiService.getInstance().baseUrlImage}/${image.photoPath}'
               : image.path;
           print('Image path: $imagePath');
           return Stack(

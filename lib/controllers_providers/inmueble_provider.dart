@@ -7,6 +7,7 @@ import '../../negocio/InmuebleNegocio.dart';
 import '../models/tipo_inmueble_model.dart';
 import '../models/servicio_basico_model.dart';
 import '../negocio/AuthenticatedNegocio.dart';
+import '../vista/components/message_widget.dart';
 
 class InmuebleProvider extends ChangeNotifier {
   final InmuebleNegocio _inmuebleNegocio = InmuebleNegocio();
@@ -22,6 +23,8 @@ class InmuebleProvider extends ChangeNotifier {
   String? _message;
   UserModel? _currentUser;
 
+  MessageType _messageType = MessageType.info;
+
   InmuebleProvider() {
     loadInmuebles();
     _loadCurrentUser();
@@ -33,9 +36,14 @@ class InmuebleProvider extends ChangeNotifier {
       isLoading = true;
       currentUser = await _authenticatedNegocio.getUserSession();
       if (currentUser == null) {
+        messageType = MessageType.info;
         message = 'Usuario no encontrado, se ha creado un usuario temporal';
+      } else {
+        messageType = MessageType.success;
+        message = 'Usuario actual cargado exitosamente';
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al cargar el usuario actual: $e';
     } finally {
       isLoading = false;
@@ -49,11 +57,14 @@ class InmuebleProvider extends ChangeNotifier {
       _responseModel = await _inmuebleNegocio.getInmuebles("");
       if (_responseModel.isSuccess && _responseModel.data != null) {
         inmuebles = InmuebleModel.fromList(_responseModel.data);
-        message = null; // Reset message on successful load
+        messageType = MessageType.success;
+        message = _responseModel.message;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'No se encontraron inmuebles';
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al cargar los inmuebles: $e';
     } finally {
       isLoading = false;
@@ -63,26 +74,26 @@ class InmuebleProvider extends ChangeNotifier {
   Future<void> loadInmueblesByPropietarioId() async {
     print('Cargando inmuebles por propietario ID');
     if (currentUser == null) {
-      await _loadCurrentUser();
-      if (currentUser == null) {
-        message = 'No se pudo cargar el usuario actual';
-        return;
-      }
+      message = 'No se pudo cargar el usuario actual';
+      isLoading = false;
+      messageType = MessageType.error;
+      return;
     }
-
     print('Usuario actual cargado: ${currentUser?.id}');
-
     try {
       isLoading = true;
       _responseModel = await _inmuebleNegocio.getInmueblesByPropietarioId(currentUser!.id);
       print('Respuesta del negocio: ${_responseModel.isSuccess}, Data: ${_responseModel.data}');
       if (_responseModel.isSuccess && _responseModel.data != null) {
         myInmuebles = InmuebleModel.fromList(_responseModel.data);
-        message = null; // Reset message on successful load
+        message = _responseModel.message ?? 'Inmuebles cargados exitosamente';
+        messageType = MessageType.success;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'No se encontraron inmuebles para este propietario';
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al cargar los inmuebles del propietario: $e';
     } finally {
       isLoading = false;
@@ -95,11 +106,14 @@ class InmuebleProvider extends ChangeNotifier {
       _responseModel = await _inmuebleNegocio.getInmuebleGaleria(inmuebleId);
       if (_responseModel.isSuccess && _responseModel.data != null) {
         galeriaInmueble = GaleriaInmuebleModel.fromJsonList(_responseModel.data);
-        message = null; // Reset message on successful load
+        message = _responseModel.message ?? 'Galería de imágenes cargada exitosamente';
+        messageType = MessageType.success;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'No se encontraron imágenes para este inmueble';
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al cargar las imágenes del inmueble: $e';
     } finally {
       isLoading = false;
@@ -113,11 +127,14 @@ class InmuebleProvider extends ChangeNotifier {
       if (_responseModel.isSuccess && _responseModel.data != null) {
         tipoInmuebles = TipoInmuebleModel.fromList(_responseModel.data);
         print('Tipos de inmueble cargados: ${tipoInmuebles.length}');
-        message = null; // Reset message on successful load
+        message = _responseModel.message ?? 'Tipos de inmueble cargados exitosamente';
+        messageType = MessageType.success;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'No se encontraron tipos de inmueble';
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al cargar los tipos de inmueble: $e';
     } finally {
       isLoading = false;
@@ -148,27 +165,12 @@ class InmuebleProvider extends ChangeNotifier {
     try {
       isLoading = true;
       if (currentUser == null || inmueble.userId == 0) {
+        messageType = MessageType.error;
         message = 'No se pudo cargar el usuario actual';
         isLoading = false;
         print('Error: No se pudo cargar el usuario actual');
         return false;
       }
-
-      // Ensure the property is assigned to the current user
-      /*InmuebleModel inmuebleWithUserId = InmuebleModel(
-        id: inmueble.id,
-        userId: currentUser!.id,
-        nombre: inmueble.nombre,
-        detalle: inmueble.detalle,
-        numHabitacion: inmueble.numHabitacion,
-        numPiso: inmueble.numPiso,
-        precio: inmueble.precio,
-        isOcupado: inmueble.isOcupado,
-        accesorios: inmueble.accesorios,
-        servicios_basicos: inmueble.servicios_basicos,
-        tipoInmuebleId: inmueble.tipoInmuebleId,
-      );*/
-
       _responseModel = await _inmuebleNegocio.createInmueble(inmueble);
       print('Respuesta del negocio al crear inmueble: ${_responseModel.isSuccess}, Data: ${_responseModel.data}');
       if (_responseModel.isSuccess && _responseModel.data != null) {
@@ -198,16 +200,19 @@ class InmuebleProvider extends ChangeNotifier {
       _responseModel = await _inmuebleNegocio.updateInmueble(inmueble);
       if (_responseModel.isSuccess && _responseModel.data != null) {
         _selectedInmueble = InmuebleModel.fromList(_responseModel.data).first;
-        message = 'Inmueble actualizado exitosamente';
+        message = _responseModel.message ?? 'Inmueble actualizado exitosamente';
+        messageType = MessageType.success;
         await loadInmueblesByPropietarioId(); // Refresh the list
         isLoading = false;
         return true;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'Error al actualizar el inmueble';
         isLoading = false;
         return false;
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al actualizar el inmueble: $e';
       isLoading = false;
       return false;
@@ -221,16 +226,19 @@ class InmuebleProvider extends ChangeNotifier {
       isLoading = true;
       _responseModel = await _inmuebleNegocio.deleteInmueble(id);
       if (_responseModel.isSuccess) {
-        message = 'Inmueble eliminado exitosamente';
+        message = _responseModel.message ?? 'Inmueble eliminado exitosamente';
+        messageType = MessageType.success;
         await loadInmueblesByPropietarioId(); // Refresh the list
         isLoading = false;
         return true;
       } else {
+        messageType = MessageType.error;
         message = _responseModel.messageError ?? 'Error al eliminar el inmueble';
         isLoading = false;
         return false;
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al eliminar el inmueble: $e';
       isLoading = false;
       return false;
@@ -243,16 +251,19 @@ class InmuebleProvider extends ChangeNotifier {
       _responseModel = await _inmuebleNegocio.uploadInmuebleImage(inmuebleId, filePath);
       print('Respuesta del negocio al subir imagen: ${_responseModel.isSuccess}, Data: ${_responseModel.data}');
       if (_responseModel.isSuccess && _responseModel.data != null) {
-        message = 'Imagen subida exitosamente';
+        message = _responseModel.message ?? 'Imagen subida exitosamente';
+        messageType = MessageType.success;
         await loadInmuebleGaleria(inmuebleId); // Refresh the gallery
         isLoading = false;
         return true;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'Error al subir la imagen';
         isLoading = false;
         return false;
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al subir la imagen: $e';
       isLoading = false;
       return false;
@@ -266,16 +277,19 @@ class InmuebleProvider extends ChangeNotifier {
       isLoading = true;
       _responseModel = await _inmuebleNegocio.deleteInmuebleImage(galeriaId);
       if (_responseModel.isSuccess) {
+        messageType = MessageType.success;
         message = 'Imagen eliminada exitosamente';
         await loadInmuebleGaleria(inmuebleId); // Refresh the gallery
         isLoading = false;
         return true;
       } else {
+        messageType = MessageType.info;
         message = _responseModel.messageError ?? 'Error al eliminar la imagen';
         isLoading = false;
         return false;
       }
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al eliminar la imagen: $e';
       isLoading = false;
       return false;
@@ -301,6 +315,7 @@ class InmuebleProvider extends ChangeNotifier {
 
       message = null; // Reset message on successful load
     } catch (e) {
+      messageType = MessageType.error;
       message = 'Error al cargar los servicios básicos: $e';
     } finally {
       isLoading = false;
@@ -381,6 +396,13 @@ class InmuebleProvider extends ChangeNotifier {
 
   set myInmuebles(List<InmuebleModel> value) {
     _myInmuebles = value;
+    notifyListeners();
+  }
+
+  MessageType get messageType => _messageType;
+
+  set messageType(MessageType value) {
+    _messageType = value;
     notifyListeners();
   }
 

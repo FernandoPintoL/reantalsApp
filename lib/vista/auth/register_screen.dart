@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:rentals/providers/authenticated_provider.dart';
 import 'package:rentals/vista/components/app_icon_widget.dart';
 
+import '../../controllers_providers/authenticated_provider.dart';
 import '../components/message_widget.dart';
 import '../interfaces/authenticated_screen_state.dart';
 
