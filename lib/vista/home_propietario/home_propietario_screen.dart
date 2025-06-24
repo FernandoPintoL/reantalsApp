@@ -7,6 +7,7 @@ import 'inmuebles/my_inmuebles_screen.dart';
 import 'inmuebles/detalle_inmuebles.dart';
 import 'solicitudes/solicitudes_screen.dart';
 import 'contratos/contratos_list_screen.dart';
+import '../blockchain/blockchain_control_screen.dart';
 
 class HomePropietarioScreen extends StatefulWidget {
   const HomePropietarioScreen({super.key});
@@ -403,6 +404,22 @@ class _HomePropietarioScreenState extends State<HomePropietarioScreen> with Sing
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Funcionalidad en desarrollo: Historial de Transacciones'),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  title: const Text('Control Blockchain'),
+                  subtitle: const Text('Monitorea tus transacciones en la blockchain'),
+                  leading: const Icon(Icons.account_tree, color: Colors.purple),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    // Navigate to blockchain control screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BlockchainControlScreen(),
                       ),
                     );
                   },

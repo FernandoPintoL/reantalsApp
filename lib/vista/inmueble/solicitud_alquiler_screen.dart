@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/inmueble_model.dart';
 import '../../models/servicio_basico_model.dart';
-import '../../models/session_model.dart';
 import '../../models/solicitud_alquiler_model.dart';
-import '../../models/user_model.dart';
 import '../../models/galeria_inmueble_model.dart';
-import '../../negocio/SessionNegocio.dart';
-import '../../negocio/UserNegocio.dart';
 import '../../controllers_providers/inmueble_provider.dart';
 import '../../controllers_providers/solicitud_alquiler_provider.dart';
 import '../../services/ApiService.dart';
@@ -204,12 +200,7 @@ class _SolicitudAlquilerScreenState extends State<SolicitudAlquilerScreen> {
                           itemCount: _galeriaInmueble.length,
                           itemBuilder: (context, index) {
                             final image = _galeriaInmueble[index];
-                            String photoPath;
-
-                            // Handle different types of gallery items
-
                             final String imagePath = '${ApiService.getInstance().baseUrlImage}/${image.photoPath}';
-
                             return Container(
                               width: 200,
                               margin: const EdgeInsets.only(right: 8),

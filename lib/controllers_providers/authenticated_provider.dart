@@ -4,6 +4,7 @@ import '../../models/user_model.dart';
 import '../../negocio/AuthenticatedNegocio.dart';
 import '../vista/components/message_widget.dart';
 import '../vista/interfaces/authenticated_screen_state.dart';
+import 'user_global_provider.dart';
 
 class AuthenticatedProvider extends ChangeNotifier{
   late AuthenticatedNegocio authenticatedNegocio;
@@ -39,6 +40,9 @@ class AuthenticatedProvider extends ChangeNotifier{
   late bool _isPropietario;
   MessageType _messageType = MessageType.info;
 
+
+  // Global user provider instance
+  final UserGlobalProvider _userGlobalProvider = UserGlobalProvider();
 
   AuthenticatedProvider() {
     authenticatedNegocio = AuthenticatedNegocio();
@@ -85,6 +89,10 @@ class AuthenticatedProvider extends ChangeNotifier{
         message = responseModel.message;
         print('Response model en provider: ${responseModel.data}');
         userActual = UserModel.mapToModel(responseModel.data);
+
+        // Update global user state
+        _userGlobalProvider.updateUser(userActual);
+
         messageType = responseModel.isSuccess ? MessageType.success : MessageType.error;
         isSuccess = responseModel.isSuccess;
         message = responseModel.isSuccess ? responseModel.message : ('${responseModel.message}\n${responseModel.messageError}').toString();
@@ -142,6 +150,10 @@ class AuthenticatedProvider extends ChangeNotifier{
         message = 'Error al obtener el usuario';
         return;
       }
+
+      // Update global user state
+      _userGlobalProvider.updateUser(userActual);
+
       messageType = MessageType.success;
       isSuccess = true;
       isLoading = false;
@@ -166,6 +178,8 @@ class AuthenticatedProvider extends ChangeNotifier{
 
   Future<void> loadUserSession() async {
     userActual = await getUserSession();
+    // Update global user state
+    _userGlobalProvider.updateUser(userActual);
   }
 
   Future<UserModel?> getUserSession() async {
@@ -196,6 +210,10 @@ class AuthenticatedProvider extends ChangeNotifier{
     if (responseModel.statusCode == 200) {
       message = responseModel.message;
       userActual = null; // Limpiar el usuario actual
+
+      // Clear global user state
+      _userGlobalProvider.clearUser();
+
       messageType = MessageType.success;
       isSuccess = true;
       isLoading = false;

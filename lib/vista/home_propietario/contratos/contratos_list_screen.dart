@@ -14,7 +14,6 @@ class ContratosListScreen extends StatefulWidget {
 
 class _ContratosListScreenState extends State<ContratosListScreen> {
   final dateFormat = DateFormat('dd/MM/yyyy');
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -23,12 +22,11 @@ class _ContratosListScreenState extends State<ContratosListScreen> {
   }
 
   Future<void> _loadContratos() async {
-    setState(() {
-      _isLoading = true;
-    });
-
     try {
+      context.read<ContratoProvider>().isLoading = true;
       await context.read<ContratoProvider>().loadContratosByPropietarioId();
+      if(!mounted) return;
+      context.read<ContratoProvider>().isLoading = false;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -37,12 +35,6 @@ class _ContratosListScreenState extends State<ContratosListScreen> {
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
       }
     }
   }
@@ -62,7 +54,7 @@ class _ContratosListScreenState extends State<ContratosListScreen> {
       ),
       body: Consumer<ContratoProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading || _isLoading) {
+          if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 

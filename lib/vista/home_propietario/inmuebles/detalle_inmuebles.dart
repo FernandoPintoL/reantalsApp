@@ -96,7 +96,7 @@ class _DetalleInmueblesScreenState extends State<DetalleInmueblesScreen> {
   Future<void> _loadGaleriaInmueble() async {
     if(mounted){
       if(widget.inmueble == null) return;
-      await context.read<InmuebleProvider>().loadInmuebleGaleria(widget!.inmueble!.id);
+      await context.read<InmuebleProvider>().loadInmuebleGaleria(widget.inmueble!.id);
     }
   }
 
@@ -330,8 +330,6 @@ class _DetalleInmueblesScreenState extends State<DetalleInmueblesScreen> {
   @override
   Widget build(BuildContext context) {
     final apiService = context.read<InmuebleProvider>();
-    final baseUrlImage = apiService.currentUser?.photoPath ?? '';
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.isEditing ? 'Editar Inmueble' : 'Crear Inmueble'),

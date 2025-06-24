@@ -189,7 +189,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: solicitud.serviciosBasicos.map((servicio) {
+                  children: solicitud.serviciosBasicos!.map((servicio) {
                     return Chip(
                       label: Text(servicio.nombre),
                       backgroundColor: Colors.blue.shade100,

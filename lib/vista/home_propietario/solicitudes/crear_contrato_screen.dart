@@ -24,9 +24,6 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
   
   DateTime _fechaInicio = DateTime.now();
   DateTime _fechaFin = DateTime.now().add(const Duration(days: 365));
-  
-  List<CondicionalModel> _condicionales = [];
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -37,7 +34,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
     }
     
     // Add default conditionals
-    _condicionales = [
+    context.read<ContratoProvider>().condicionales = [
       CondicionalModel(
         id: 1,
         descripcion: 'Retraso en el pago mensual',
@@ -157,9 +154,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
             onPressed: () {
               // For simplicity, just add a default conditional
               setState(() {
-                _condicionales.add(
+                context.read<ContratoProvider>().condicionales.add(
                   CondicionalModel(
-                    id: _condicionales.length + 1,
+                    id: context.read<ContratoProvider>().condicionales.length + 1,
                     descripcion: 'Nueva condición',
                     tipoCondicion: 'otro',
                     accion: 'otro',
@@ -178,17 +175,14 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
 
   void _removeCondicional(int index) {
     setState(() {
-      _condicionales.removeAt(index);
+      context.read<ContratoProvider>().condicionales.removeAt(index);
     });
   }
 
   Future<void> _submitContrato() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
       try {
+        context.read<ContratoProvider>().isLoading = true;
         final provider = Provider.of<ContratoProvider>(context, listen: false);
         
         final success = await provider.createContratoFromSolicitud(
@@ -197,7 +191,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
           fechaFin: _fechaFin,
           monto: double.parse(_montoController.text),
           detalle: _detalleController.text,
-          condicionales: _condicionales,
+          condicionales: context.read<ContratoProvider>().condicionales,
         );
         
         if (mounted) {
@@ -218,6 +212,8 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
             );
           }
         }
+        if(!mounted) return; // Check if the widget is still mounted before updating state
+        context.read<ContratoProvider>().isLoading = false;
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -226,12 +222,6 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
               backgroundColor: Colors.red,
             ),
           );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
         }
       }
     }
@@ -245,7 +235,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
       appBar: AppBar(
         title: const Text('Crear Contrato'),
       ),
-      body: _isLoading
+      body: context.read<ContratoProvider>().isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -399,9 +389,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _condicionales.length,
+                      itemCount: context.read<ContratoProvider>().condicionales.length,
                       itemBuilder: (context, index) {
-                        final condicional = _condicionales[index];
+                        final condicional = context.read<ContratoProvider>().condicionales[index];
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(

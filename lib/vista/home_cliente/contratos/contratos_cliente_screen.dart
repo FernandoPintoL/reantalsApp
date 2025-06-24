@@ -18,7 +18,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
     super.initState();
     // Load contracts for the current client
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ContratoProvider>().loadContratosByUserId();
+      context.read<ContratoProvider>().loadContratosByClienteId();
     });
   }
 
@@ -31,7 +31,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<ContratoProvider>().loadContratosByUserId();
+              context.read<ContratoProvider>().loadContratosByClienteId();
             },
             tooltip: 'Actualizar',
           ),
@@ -56,7 +56,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      provider.loadContratosByUserId();
+                      provider.loadContratosByClienteId();
                     },
                     child: const Text('Reintentar'),
                   ),
@@ -86,8 +86,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
     );
   }
 
-  Widget _buildContratoCard(
-      BuildContext context, ContratoModel contrato, ContratoProvider provider) {
+  Widget _buildContratoCard(BuildContext context, ContratoModel contrato, ContratoProvider provider) {
     final dateFormat = DateFormat('dd/MM/yyyy');
     
     // Get status color
@@ -306,8 +305,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
     }
   }
 
-  void _showApprovalDialog(
-      BuildContext context, ContratoModel contrato, ContratoProvider provider) {
+  void _showApprovalDialog(BuildContext context, ContratoModel contrato, ContratoProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -362,8 +360,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
     );
   }
 
-  void _showPaymentDialog(
-      BuildContext context, ContratoModel contrato, ContratoProvider provider) {
+  void _showPaymentDialog(BuildContext context, ContratoModel contrato, ContratoProvider provider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

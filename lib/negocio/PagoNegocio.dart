@@ -9,7 +9,7 @@ class PagoNegocio {
 
   Future<ResponseModel> createPago(PagoModel pago) async {
     try {
-      ResponseModel response = await apiService.post('pagos', pago.toJson());
+      ResponseModel response = await apiService.post('pagos/store', pago.toJson());
       print('Response from createPago: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -26,7 +26,7 @@ class PagoNegocio {
     }
   }
 
-  Future<ResponseModel> getPagosByContratoId(int contratoId) async {
+  Future<ResponseModel> getPagosContratoId(int contratoId) async {
     try {
       ResponseModel response = await apiService.get('pagos/contrato/$contratoId');
       print('Response from getPagosByContratoId: ${response.toJson()}');
@@ -45,9 +45,9 @@ class PagoNegocio {
     }
   }
 
-  Future<ResponseModel> getPagosByUserId(int userId) async {
+  Future<ResponseModel> getPagosByClienteId(int userId) async {
     try {
-      ResponseModel response = await apiService.get('pagos/user/$userId');
+      ResponseModel response = await apiService.get('pagos/cliente/$userId');
       print('Response from getPagosByUserId: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -60,6 +60,44 @@ class PagoNegocio {
         statusCode: 500,
         data: null,
         message: 'Error fetching pagos by user id: $e',
+      );
+    }
+  }
+
+  Future<ResponseModel> getPagosPendientesByClienteId(int userId) async {
+    try {
+      ResponseModel response = await apiService.get('pagos/pendientes/cliente/$userId');
+      print('Response from getPagosPendientesByClienteId: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error fetching pagos pendientes by user id: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error fetching pagos pendientes by user id: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error fetching pagos pendientes by user id: $e',
+      );
+    }
+  }
+
+  Future<ResponseModel> getPagosCompletadosByClienteId(int userId) async {
+    try {
+      ResponseModel response = await apiService.get('pagos/completados/cliente/$userId');
+      print('Response from getPagosCompletadosByClienteId: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error fetching pagos completados by user id: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error fetching pagos completados by user id: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error fetching pagos completados by user id: $e',
       );
     }
   }

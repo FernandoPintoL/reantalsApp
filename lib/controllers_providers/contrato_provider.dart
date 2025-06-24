@@ -1,54 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:rentals/controllers_providers/authenticated_provider.dart';
 import '../models/contrato_model.dart';
 import '../models/response_model.dart';
 import '../models/session_model.dart';
 import '../models/user_model.dart';
 import '../models/solicitud_alquiler_model.dart';
+import '../negocio/AuthenticatedNegocio.dart';
 import '../negocio/ContratoNegocio.dart';
 import '../negocio/SessionNegocio.dart';
 import '../negocio/SolicitudAlquilerNegocio.dart';
 import '../negocio/UserNegocio.dart';
+import '../vista/components/message_widget.dart';
 import 'blockchain_provider.dart';
+import 'user_global_provider.dart';
 
 class ContratoProvider extends ChangeNotifier {
   final BlockchainProvider _blockchainProvider = BlockchainProvider();
   final ContratoNegocio _contratoNegocio = ContratoNegocio();
   final SolicitudAlquilerNegocio _solicitudNegocio = SolicitudAlquilerNegocio();
-  final SessionNegocio _sessionNegocio = SessionNegocio();
+  final AuthenticatedNegocio _authenticatedNegocio = AuthenticatedNegocio();
   final UserNegocio _userNegocio = UserNegocio();
-  SessionModelo? _sessionModel;
+  final UserGlobalProvider _userGlobalProvider = UserGlobalProvider();
 
   List<ContratoModel> _contratos = [];
+  List<ContratoModel> _contratosPendientesCliente = [];
+  List<ContratoModel> _contratosPendientesPropietario = [];
+  List<ContratoModel> _contratosActivosCliente = [];
+  List<ContratoModel> _contratosActivosPropietario = [];
+  List<CondicionalModel> _condicionales = [];
   ContratoModel? _selectedContrato;
   bool _isLoading = false;
   String? _message;
   UserModel? _currentUser;
+  MessageType _messageType = MessageType.info;
 
   ContratoProvider() {
-    _loadCurrentUser();
+    // Get the current user from the global provider
+    loadCurrentUser();
+
+    // Listen for changes to the global user state
+    _userGlobalProvider.addListener(_onUserChanged);
   }
 
-  Future<void> _loadCurrentUser() async {
+  // Cleanup listener when provider is disposed
+  @override
+  void dispose() {
+    _userGlobalProvider.removeListener(_onUserChanged);
+    super.dispose();
+  }
+
+  // Called when the global user state changes
+  void _onUserChanged() {
+    currentUser = _userGlobalProvider.currentUser;
+  }
+
+  Future<void> loadCurrentUser() async {
     try {
-      _sessionModel = await _sessionNegocio.getSession();
-      if (_sessionModel != null && _sessionModel!.userId != null) {
-        _currentUser = await _userNegocio.getUser(_sessionModel!.userId!);
+      isLoading = true;
+
+      // First try to get the user from the global provider
+      currentUser = _userGlobalProvider.currentUser;
+
+      // If not available in global provider, try to load from session
+      if (currentUser == null) {
+        currentUser = await _authenticatedNegocio.getUserSession();
+
+        // If we found a user in the session, update the global provider
+        if (currentUser != null) {
+          _userGlobalProvider.updateUser(currentUser);
+        }
+      }
+
+      if (currentUser == null) {
+        messageType = MessageType.info;
+        message = 'Usuario no encontrado, se ha creado un usuario temporal';
       } else {
-        _currentUser = null;
+        messageType = MessageType.success;
+        message = 'Usuario actual cargado exitosamente';
       }
     } catch (e) {
-      print('Error loading current user: $e');
+      messageType = MessageType.error;
+      message = 'Error al cargar el usuario actual: $e';
+    } finally {
+      isLoading = false;
     }
   }
 
   Future<bool> createContrato(ContratoModel contrato) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      if (_currentUser == null) {
-        await _loadCurrentUser();
-        if (_currentUser == null) {
+      isLoading = true;
+      if (currentUser == null) {
+        await loadCurrentUser();
+        if (currentUser == null) {
           message = 'No se pudo cargar el usuario actual';
           isLoading = false;
           return false;
@@ -58,7 +101,7 @@ class ContratoProvider extends ChangeNotifier {
       ResponseModel response = await _contratoNegocio.createContrato(contrato);
 
       if (response.isSuccess && response.data != null) {
-        _selectedContrato = ContratoModel.fromMap(response.data);
+        selectedContrato = ContratoModel.fromMap(response.data);
         message = 'Contrato creado exitosamente';
 
         // If this contract is associated with a solicitud, update its status
@@ -71,7 +114,7 @@ class ContratoProvider extends ChangeNotifier {
           try {
             UserModel? propietario = await _userNegocio.getUser(contrato.inmueble!.userId);
             final blockchainSuccess = await _blockchainProvider.createRentalContract(
-              _selectedContrato!,
+              selectedContrato!,
               propietario!,
               contrato.cliente!
             );
@@ -100,16 +143,10 @@ class ContratoProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> createContratoFromSolicitud(SolicitudAlquilerModel solicitud, 
-      {required DateTime fechaInicio, 
-       required DateTime fechaFin, 
-       required double monto, 
-       String? detalle, 
-       List<CondicionalModel> condicionales = const []}) async {
-
-    if (_currentUser == null) {
-      await _loadCurrentUser();
-      if (_currentUser == null) {
+  Future<bool> createContratoFromSolicitud(SolicitudAlquilerModel solicitud, {required DateTime fechaInicio, required DateTime fechaFin, required double monto, String? detalle, List<CondicionalModel> condicionales = const []}) async {
+    if (currentUser == null) {
+      await loadCurrentUser();
+      if (currentUser == null) {
         message = 'No se pudo cargar el usuario actual';
         return false;
       }
@@ -135,21 +172,17 @@ class ContratoProvider extends ChangeNotifier {
     return await createContrato(contrato);
   }
 
-  Future<void> loadContratosByUserId() async {
-    if (_currentUser == null) {
-      await _loadCurrentUser();
-      if (_currentUser == null) {
+  Future<void> loadContratosByClienteId() async {
+    if (currentUser == null) {
+      await loadCurrentUser();
+      if (currentUser == null) {
         message = 'No se pudo cargar el usuario actual';
         return;
       }
     }
-
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      ResponseModel response = await _contratoNegocio.getContratosByUserId(_currentUser!.id);
-
+      isLoading = true;
+      ResponseModel response = await _contratoNegocio.getContratosByClienteId(currentUser!.id);
       if (response.isSuccess && response.data != null) {
         contratos = ContratoModel.fromJsonList(response.data);
         message = null; // Reset message on successful load
@@ -164,19 +197,16 @@ class ContratoProvider extends ChangeNotifier {
   }
 
   Future<void> loadContratosByPropietarioId() async {
-    if (_currentUser == null) {
-      await _loadCurrentUser();
-      if (_currentUser == null) {
+    if (currentUser == null) {
+      await loadCurrentUser();
+      if (currentUser == null) {
         message = 'No se pudo cargar el usuario actual';
         return;
       }
     }
-
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      ResponseModel response = await _contratoNegocio.getContratosByPropietarioId(_currentUser!.id);
+      isLoading = true;
+      ResponseModel response = await _contratoNegocio.getContratosByPropietarioId(currentUser!.id);
 
       if (response.isSuccess && response.data != null) {
         contratos = ContratoModel.fromJsonList(response.data);
@@ -192,22 +222,17 @@ class ContratoProvider extends ChangeNotifier {
   }
 
   Future<bool> updateContratoEstado(int id, String estado) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
+      isLoading = true;
       ResponseModel response = await _contratoNegocio.updateContratoEstado(id, estado);
-
       if (response.isSuccess) {
         message = 'Estado del contrato actualizado exitosamente';
-
         // Refresh the list based on user type
-        if (_currentUser?.tipoUsuario == 'propietario') {
+        if (currentUser?.tipoUsuario == 'propietario') {
           await loadContratosByPropietarioId();
         } else {
-          await loadContratosByUserId();
+          await loadContratosByClienteId();
         }
-
         isLoading = false;
         return true;
       } else {
@@ -223,10 +248,8 @@ class ContratoProvider extends ChangeNotifier {
   }
 
   Future<bool> updateContratoClienteAprobado(int id, bool clienteAprobado) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
+      isLoading = true;
       ResponseModel response = await _contratoNegocio.updateContratoClienteAprobado(id, clienteAprobado);
 
       if (response.isSuccess) {
@@ -253,10 +276,8 @@ class ContratoProvider extends ChangeNotifier {
         } else {
           await _contratoNegocio.updateContratoEstado(id, 'rechazado');
         }
-
         // Refresh the list
-        await loadContratosByUserId();
-
+        await loadContratosByClienteId();
         isLoading = false;
         return true;
       } else {
@@ -272,40 +293,32 @@ class ContratoProvider extends ChangeNotifier {
   }
 
   Future<bool> registrarPagoContrato(int id, DateTime fechaPago) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
+      isLoading = true;
       // Get the contract to get the amount
       ContratoModel? contrato;
-      for (var c in _contratos) {
+      for (var c in contratos) {
         if (c.id == id) {
           contrato = c;
           break;
         }
       }
-
       if (contrato == null) {
         message = 'No se encontró el contrato';
         isLoading = false;
         return false;
       }
-
-      ResponseModel response = await _contratoNegocio.updateContratoPago(id, fechaPago);
-
+      ResponseModel response = await _contratoNegocio.updateContratoFechaPago(id, fechaPago);
       if (response.isSuccess) {
         message = 'Pago registrado exitosamente';
-
         // Update the contract status to active
         await _contratoNegocio.updateContratoEstado(id, 'activo');
-
         // Make payment on blockchain if service is initialized
         if (_blockchainProvider.isInitialized) {
           try {
             final blockchainSuccess = await _blockchainProvider.makePayment(id, contrato.monto);
             if (blockchainSuccess) {
               message = '$message y procesado en blockchain';
-
               // Update blockchain address if payment was successful
               final blockchainDetails = await _blockchainProvider.getContractDetails(id);
               if (blockchainDetails != null && blockchainDetails.containsKey('landlord')) {
@@ -318,10 +331,8 @@ class ContratoProvider extends ChangeNotifier {
             print('Error making payment on blockchain: $blockchainError');
           }
         }
-
         // Refresh the list
-        await loadContratosByUserId();
-
+        await loadContratosByClienteId();
         isLoading = false;
         return true;
       } else {
@@ -337,22 +348,17 @@ class ContratoProvider extends ChangeNotifier {
   }
 
   Future<bool> updateContratoBlockchain(int id, String blockchainAddress) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
+      isLoading = true;
       ResponseModel response = await _contratoNegocio.updateContratoBlockchain(id, blockchainAddress);
-
       if (response.isSuccess) {
         message = 'Dirección blockchain actualizada exitosamente';
-
         // Refresh the list based on user type
-        if (_currentUser?.tipoUsuario == 'propietario') {
+        if (currentUser?.tipoUsuario == 'propietario') {
           await loadContratosByPropietarioId();
         } else {
-          await loadContratosByUserId();
+          await loadContratosByClienteId();
         }
-
         isLoading = false;
         return true;
       } else {
@@ -395,5 +401,26 @@ class ContratoProvider extends ChangeNotifier {
 
   ContratoModel? get selectedContrato => _selectedContrato;
 
+  set selectedContrato(ContratoModel? value) {
+    _selectedContrato = value;
+    notifyListeners();
+  }
+
   UserModel? get currentUser => _currentUser;
+
+  set currentUser(UserModel? value) {
+    _currentUser = value;
+    notifyListeners();
+  }
+
+  MessageType get messageType => _messageType;
+  set messageType(MessageType value) {
+    _messageType = value;
+    notifyListeners();
+  }
+  List<CondicionalModel> get condicionales => _condicionales;
+  set condicionales(List<CondicionalModel> value) {
+    _condicionales = value;
+    notifyListeners();
+  }
 }

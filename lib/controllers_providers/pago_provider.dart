@@ -3,66 +3,71 @@ import '../models/pago_model.dart';
 import '../models/response_model.dart';
 import '../models/session_model.dart';
 import '../models/user_model.dart';
+import '../negocio/AuthenticatedNegocio.dart';
 import '../negocio/PagoNegocio.dart';
 import '../negocio/SessionNegocio.dart';
 import '../negocio/UserNegocio.dart';
+import '../vista/components/message_widget.dart';
 import 'blockchain_provider.dart';
 
 class PagoProvider extends ChangeNotifier {
   final BlockchainProvider _blockchainProvider = BlockchainProvider();
   final PagoNegocio _pagoNegocio = PagoNegocio();
-  final SessionNegocio _sessionNegocio = SessionNegocio();
-  final UserNegocio _userNegocio = UserNegocio();
-  SessionModelo? _sessionModel;
+  final AuthenticatedNegocio _authenticatedNegocio = AuthenticatedNegocio();
 
   List<PagoModel> _pagos = [];
+  List<PagoModel> _pagosContrato = [];
+  List<PagoModel> _pagosPendientesCliente = [];
+  List<PagoModel> _pagosCompletadosCliente = [];
+  List<PagoModel> _pagosPendientesPropietario = [];
   bool _isLoading = false;
   String? _message;
   UserModel? _currentUser;
+  MessageType _messageType = MessageType.info;
 
   PagoProvider() {
-    _loadCurrentUser();
+    loadCurrentUser();
   }
 
-  Future<void> _loadCurrentUser() async {
+  Future<void> loadCurrentUser() async {
     try {
-      _sessionModel = await _sessionNegocio.getSession();
-      if (_sessionModel != null && _sessionModel!.userId != null) {
-        _currentUser = await _userNegocio.getUser(_sessionModel!.userId!);
+      isLoading = true;
+      currentUser = await _authenticatedNegocio.getUserSession();
+      if (currentUser == null) {
+        messageType = MessageType.info;
+        message = 'Usuario no encontrado, se ha creado un usuario temporal';
       } else {
-        _currentUser = null;
+        messageType = MessageType.success;
+        message = 'Usuario actual cargado exitosamente';
       }
     } catch (e) {
-      print('Error loading current user: $e');
+      messageType = MessageType.error;
+      message = 'Error al cargar el usuario actual: $e';
+    } finally {
+      isLoading = false;
     }
   }
 
   Future<bool> createPago(PagoModel pago) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
+      isLoading = true;
       if (_currentUser == null) {
-        await _loadCurrentUser();
+        await loadCurrentUser();
         if (_currentUser == null) {
           message = 'No se pudo cargar el usuario actual';
           isLoading = false;
           return false;
         }
       }
-
       ResponseModel response = await _pagoNegocio.createPago(pago);
-
       if (response.isSuccess && response.data != null) {
         message = 'Pago creado exitosamente';
-
         // Create payment on blockchain if service is initialized
         if (_blockchainProvider.isInitialized) {
           try {
             final blockchainSuccess = await _blockchainProvider.makePayment(pago.contratoId, pago.monto);
             if (blockchainSuccess) {
               message = '$message y procesado en blockchain';
-              
               // Get blockchain transaction ID and update payment
               final blockchainDetails = await _blockchainProvider.getContractDetails(pago.contratoId);
               if (blockchainDetails != null && blockchainDetails.containsKey('transactionHash')) {
@@ -75,10 +80,8 @@ class PagoProvider extends ChangeNotifier {
             print('Error processing payment on blockchain: $blockchainError');
           }
         }
-
         // Refresh the list
-        await loadPagosByUserId();
-
+        await loadPagosByClienteId();
         isLoading = false;
         return true;
       } else {
@@ -93,15 +96,12 @@ class PagoProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadPagosByContratoId(int contratoId) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> loadPagosContratoId(int contratoId) async {
     try {
-      ResponseModel response = await _pagoNegocio.getPagosByContratoId(contratoId);
-
+      isLoading = true;
+      ResponseModel response = await _pagoNegocio.getPagosContratoId(contratoId);
       if (response.isSuccess && response.data != null) {
-        pagos = PagoModel.fromList(response.data);
+        pagosContrato = PagoModel.fromList(response.data);
         message = null; // Reset message on successful load
       } else {
         message = response.messageError ?? 'No se encontraron pagos para este contrato';
@@ -113,21 +113,62 @@ class PagoProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadPagosByUserId() async {
+  Future<void> loadPagosPendientesCliente() async {
+    if (currentUser == null) {
+      message = 'No se pudo cargar el usuario actual';
+      return;
+    }
+    try {
+      isLoading = true;
+      ResponseModel response = await _pagoNegocio.getPagosPendientesByClienteId(currentUser!.id);
+      if (response.isSuccess && response.data != null) {
+        pagosPendientesCliente = PagoModel.fromList(response.data);
+        message = null; // Reset message on successful load
+      } else {
+        message = response.messageError ?? 'No se encontraron pagos pendientes para este usuario';
+      }
+    } catch (e) {
+      message = 'Error al cargar los pagos pendientes del usuario: $e';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  Future<void> loadPagosCompletadosCliente() async {
+    if (currentUser == null) {
+      await loadCurrentUser();
+      if (currentUser == null) {
+        message = 'No se pudo cargar el usuario actual';
+        return;
+      }
+    }
+    try {
+      isLoading = true;
+      ResponseModel response = await _pagoNegocio.getPagosCompletadosByClienteId(currentUser!.id);
+      if (response.isSuccess && response.data != null) {
+        pagosCompletadosCliente = PagoModel.fromList(response.data);
+        message = null; // Reset message on successful load
+      } else {
+        message = response.messageError ?? 'No se encontraron pagos completados para este usuario';
+      }
+    } catch (e) {
+      message = 'Error al cargar los pagos completados del usuario: $e';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  Future<void> loadPagosByClienteId() async {
     if (_currentUser == null) {
-      await _loadCurrentUser();
+      await loadCurrentUser();
       if (_currentUser == null) {
         message = 'No se pudo cargar el usuario actual';
         return;
       }
     }
-
-    _isLoading = true;
-    notifyListeners();
-
     try {
-      ResponseModel response = await _pagoNegocio.getPagosByUserId(_currentUser!.id);
-
+      isLoading = true;
+      ResponseModel response = await _pagoNegocio.getPagosByClienteId(_currentUser!.id);
       if (response.isSuccess && response.data != null) {
         pagos = PagoModel.fromList(response.data);
         message = null; // Reset message on successful load
@@ -142,18 +183,13 @@ class PagoProvider extends ChangeNotifier {
   }
 
   Future<bool> updatePagoEstado(int id, String estado) async {
-    _isLoading = true;
-    notifyListeners();
-
     try {
+      isLoading = true;
       ResponseModel response = await _pagoNegocio.updatePagoEstado(id, estado);
-
       if (response.isSuccess) {
         message = 'Estado del pago actualizado exitosamente';
-
         // Refresh the list
-        await loadPagosByUserId();
-
+        await loadPagosByClienteId();
         isLoading = false;
         return true;
       } else {
@@ -190,4 +226,39 @@ class PagoProvider extends ChangeNotifier {
   }
 
   UserModel? get currentUser => _currentUser;
+
+  set currentUser(UserModel? value) {
+    _currentUser = value;
+    notifyListeners();
+  }
+  MessageType get messageType => _messageType;
+  set messageType(MessageType value) {
+    _messageType = value;
+    notifyListeners();
+  }
+
+  List<PagoModel> get pagosPendientesPropietario => _pagosPendientesPropietario;
+
+  set pagosPendientesPropietario(List<PagoModel> value) {
+    _pagosPendientesPropietario = value;
+    notifyListeners();
+  }
+
+  List<PagoModel> get pagosPendientesCliente => _pagosPendientesCliente;
+
+  set pagosPendientesCliente(List<PagoModel> value) {
+    _pagosPendientesCliente = value;
+    notifyListeners();
+  }
+
+  List<PagoModel> get pagosCompletadosCliente => _pagosCompletadosCliente;
+  set pagosCompletadosCliente(List<PagoModel> value) {
+    _pagosCompletadosCliente = value;
+    notifyListeners();
+  }
+  List<PagoModel> get pagosContrato => _pagosContrato;
+  set pagosContrato(List<PagoModel> value) {
+    _pagosContrato = value;
+    notifyListeners();
+  }
 }

@@ -9,7 +9,7 @@ class SolicitudAlquilerModel {
   int inmuebleId;
   int userId;
   String estado;
-  List<ServicioBasicoModel> serviciosBasicos;
+  List<ServicioBasicoModel>? serviciosBasicos;
   String? mensaje;
   Timestamp? createdAt;
   Timestamp? updatedAt;
@@ -38,12 +38,9 @@ class SolicitudAlquilerModel {
       'inmueble_id': inmuebleId,
       'user_id': userId,
       'estado': estado,
-      'servicios_basicos': serviciosBasicos.map((servicio) => servicio.toJson()).toList(),
+      'servicios_basicos':
+          serviciosBasicos?.map((servicio) => servicio.toJson()).toList(),
       'mensaje': mensaje,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'inmueble': inmueble?.toMap(),
-      'cliente': cliente?.toMap(),
     };
   }
 
@@ -53,12 +50,25 @@ class SolicitudAlquilerModel {
       inmuebleId: map['inmueble_id'] ?? 0,
       userId: map['user_id'] ?? 0,
       estado: map['estado'] ?? 'pendiente',
-      serviciosBasicos: map['servicios_basicos'] != null
-          ? ServicioBasicoModel.fromJsonList(map['servicios_basicos'])
-          : [],
+      serviciosBasicos:
+          map['servicios_basicos'] is List
+              ? ServicioBasicoModel.fromJsonList(
+                map['servicios_basicos'] as List<dynamic>?,
+              )
+              : null,
       mensaje: map['mensaje'],
-      createdAt: map['created_at'] is Timestamp ? map['created_at'] : null,
-      updatedAt: map['updated_at'] is Timestamp ? map['updated_at'] : null,
+      createdAt:
+          map['created_at'] != null
+              ? HandlerDateTime.getDateTimeOfString(
+                map['created_at'].toString(),
+              )
+              : HandlerDateTime.getDateTimeNow(),
+      updatedAt:
+          map['updated_at'] != null
+              ? HandlerDateTime.getDateTimeOfString(
+                map['updated_at'].toString(),
+              )
+              : HandlerDateTime.getDateTimeNow(),
     );
 
     if (map['inmueble'] != null) {
@@ -74,7 +84,9 @@ class SolicitudAlquilerModel {
 
   static List<SolicitudAlquilerModel> fromJsonList(dynamic jsonList) {
     if (jsonList is List) {
-      return jsonList.map((item) => SolicitudAlquilerModel.fromMap(item)).toList();
+      return jsonList
+          .map((item) => SolicitudAlquilerModel.fromMap(item))
+          .toList();
     } else if (jsonList is Map<String, dynamic>) {
       return [SolicitudAlquilerModel.fromMap(jsonList)];
     } else {

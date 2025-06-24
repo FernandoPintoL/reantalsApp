@@ -14,16 +14,12 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> implements AuthenticatedScreenState {
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
   final _direccionController = TextEditingController();
-  bool _isOwner = false;
-  bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void dispose() {

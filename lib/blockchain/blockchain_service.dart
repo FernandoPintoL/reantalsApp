@@ -33,11 +33,7 @@ class BlockchainService {
   }
 
   // Initialize the blockchain service
-  Future<void> initialize({
-    required String rpcUrl,
-    required String privateKey,
-    required int chainId,
-  }) async {
+  Future<void> initialize({required String rpcUrl, required String privateKey, required int chainId}) async {
     _rpcUrl = rpcUrl;
     _chainId = chainId;
 
@@ -46,10 +42,10 @@ class BlockchainService {
 
     // Load contract ABI
     final contractABI = await rootBundle.loadString(
-      'assets/rentals/build/RentalContract.json',
+      'assets/rentals/build/contracts/RentalContract.json',
     );
     final contractAddress = EthereumAddress.fromHex(
-      'YOUR_CONTRACT_ADDRESS',
+      '0x9fa02580Bd718D5ad6e2f873148C9414C0962F40',
     ); // Replace with actual deployed address
 
     // Create credentials from private key
@@ -140,8 +136,7 @@ class BlockchainService {
     final endDate = BigInt.from(
       contrato.fechaFin.millisecondsSinceEpoch ~/ 1000,
     );
-    final termsHash =
-        'ipfs://QmHash'; // Replace with actual IPFS hash if available
+    final termsHash = 'ipfs://QmHash'; // Replace with actual IPFS hash if available
 
     // Create transaction
     final transaction = Transaction.callContract(

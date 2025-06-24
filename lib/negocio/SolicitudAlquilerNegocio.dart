@@ -9,7 +9,8 @@ class SolicitudAlquilerNegocio {
 
   Future<ResponseModel> createSolicitudAlquiler(SolicitudAlquilerModel solicitud) async {
     try {
-      ResponseModel response = await apiService.post('solicitudes-alquiler', solicitud.toMap());
+      print('Creating solicitud alquiler: ${solicitud.toMap()}');
+      ResponseModel response = await apiService.post('solicitudes-alquiler/store', solicitud.toMap());
       print('Response from createSolicitudAlquiler: ${response.toJson()}');
       return response;
     } catch (e) {

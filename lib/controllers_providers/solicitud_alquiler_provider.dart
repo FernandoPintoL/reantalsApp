@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
-import '../models/session_model.dart';
 import '../models/solicitud_alquiler_model.dart';
 import '../models/response_model.dart';
 import '../models/user_model.dart';
 import '../negocio/AuthenticatedNegocio.dart';
 import '../negocio/SolicitudAlquilerNegocio.dart';
-import '../negocio/SessionNegocio.dart';
-import '../negocio/UserNegocio.dart';
 import '../vista/components/message_widget.dart';
 
 class SolicitudAlquilerProvider extends ChangeNotifier {
   final SolicitudAlquilerNegocio _solicitudNegocio = SolicitudAlquilerNegocio();
   final AuthenticatedNegocio _authenticatedNegocio = AuthenticatedNegocio();
-
-  late ResponseModel _responseModel;
   
   List<SolicitudAlquilerModel> _solicitudes = [];
   SolicitudAlquilerModel? _selectedSolicitud;
@@ -66,7 +61,7 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
       );
 
       ResponseModel response = await _solicitudNegocio.createSolicitudAlquiler(solicitudWithUserId);
-      
+      print('Response from createSolicitudAlquiler: ${response.toJson()}');
       if (response.isSuccess && response.data != null) {
         _selectedSolicitud = SolicitudAlquilerModel.fromMap(response.data);
         message = 'Solicitud de alquiler enviada exitosamente';
@@ -94,14 +89,13 @@ class SolicitudAlquilerProvider extends ChangeNotifier {
       }
     }
 
-    _isLoading = true;
-    notifyListeners();
-    
     try {
+      isLoading = true;
       ResponseModel response = await _solicitudNegocio.getSolicitudesByClienteId(currentUser!.id);
-      
+      print('Response from getSolicitudesByClienteId: ${response.toJson()}');
       if (response.isSuccess && response.data != null) {
         solicitudes = SolicitudAlquilerModel.fromJsonList(response.data);
+        print('Solicitudes loaded: ${solicitudes.length}');
         message = null; // Reset message on successful load
       } else {
         message = response.messageError ?? 'No se encontraron solicitudes para este usuario';

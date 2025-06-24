@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers_providers/authenticated_provider.dart';
+import 'pagos/pagos_pendientes_screen.dart';
+import 'pagos/historial_pagos_screen.dart';
+import 'contratos/contratos_cliente_screen.dart';
+import 'contratos/historial_contratos_screen.dart';
+import '../blockchain/blockchain_control_screen.dart';
 
 class HomeClienteScreen extends StatefulWidget {
   const HomeClienteScreen({super.key});
@@ -38,7 +43,7 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Panel de Cliente'),
+        title: const Text('Panel de Cliente - Blockchain'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -66,7 +71,7 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Bienvenido, ${user?.name ?? "Cliente"}',
+                          'Bienvenido, ${context.watch<AuthenticatedProvider>().userActual!.name ?? "Cliente"}',
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 8),
@@ -100,9 +105,10 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           // Navigate to pending payments screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Funcionalidad en desarrollo: Pagos Pendientes'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PagosPendientesScreen(),
                             ),
                           );
                         },
@@ -115,9 +121,10 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           // Navigate to payment history screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Funcionalidad en desarrollo: Historial de Pagos'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HistorialPagosScreen(),
                             ),
                           );
                         },
@@ -129,10 +136,11 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                         leading: const Icon(Icons.account_balance_wallet, color: Colors.green),
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
-                          // Navigate to make payment screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Funcionalidad en desarrollo: Realizar Pago'),
+                          // Navigate to pending payments screen to select a payment to make
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PagosPendientesScreen(),
                             ),
                           );
                         },
@@ -161,9 +169,10 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           // Navigate to active contracts screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Funcionalidad en desarrollo: Contratos Activos'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ContratosClienteScreen(),
                             ),
                           );
                         },
@@ -176,9 +185,42 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           // Navigate to contract history screen
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Funcionalidad en desarrollo: Historial de Contratos'),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HistorialContratosScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Blockchain section
+                Text(
+                  'Blockchain',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+
+                Card(
+                  elevation: 4,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: const Text('Control Blockchain'),
+                        subtitle: const Text('Monitorea tus transacciones en la blockchain'),
+                        leading: const Icon(Icons.account_tree, color: Colors.purple),
+                        trailing: const Icon(Icons.arrow_forward_ios),
+                        onTap: () {
+                          // Navigate to blockchain control screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const BlockchainControlScreen(),
                             ),
                           );
                         },

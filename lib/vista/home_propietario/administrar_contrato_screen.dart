@@ -46,7 +46,7 @@ class _AdministrarContratoScreenState extends State<AdministrarContratoScreen> w
     });
     
     try {
-      await context.read<PagoProvider>().loadPagosByContratoId(widget.contrato.id);
+      await context.read<PagoProvider>().loadPagosContratoId(widget.contrato.id);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -9,7 +9,7 @@ class ContratoNegocio {
 
   Future<ResponseModel> createContrato(ContratoModel contrato) async {
     try {
-      ResponseModel response = await apiService.post('contratos', contrato.toMap());
+      ResponseModel response = await apiService.post('contratos/store', contrato.toMap());
       print('Response from createContrato: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -26,9 +26,9 @@ class ContratoNegocio {
     }
   }
 
-  Future<ResponseModel> getContratosByUserId(int userId) async {
+  Future<ResponseModel> getContratosByClienteId(int userId) async {
     try {
-      ResponseModel response = await apiService.get('contratos/user/$userId');
+      ResponseModel response = await apiService.get('contratos/cliente/$userId');
       print('Response from getContratosByUserId: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -121,9 +121,9 @@ class ContratoNegocio {
     }
   }
 
-  Future<ResponseModel> updateContratoPago(int id, DateTime fechaPago) async {
+  Future<ResponseModel> updateContratoFechaPago(int id, DateTime fechaPago) async {
     try {
-      ResponseModel response = await apiService.put('contratos/$id/pago', {'fecha_pago': fechaPago.toIso8601String()});
+      ResponseModel response = await apiService.put('contratos/$id/fecha-pago', {'fecha_pago': fechaPago.toIso8601String()});
       print('Response from updateContratoPago: ${response.toJson()}');
       return response;
     } catch (e) {

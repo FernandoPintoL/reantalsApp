@@ -21,7 +21,6 @@ class DetalleContratoScreen extends StatefulWidget {
 class _DetalleContratoScreenState extends State<DetalleContratoScreen> with SingleTickerProviderStateMixin {
   final dateFormat = DateFormat('dd/MM/yyyy');
   late TabController _tabController;
-  bool _isLoading = false;
 
   @override
   void initState() {
@@ -41,28 +40,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
   }
 
   Future<void> _loadPagos() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      await context.read<PagoProvider>().loadPagosByContratoId(widget.contrato.id);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar los pagos: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    await context.read<PagoProvider>().loadPagosContratoId(widget.contrato.id);
   }
 
   @override
@@ -134,7 +112,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
   Widget _buildPagosTab() {
     return Consumer<PagoProvider>(
       builder: (context, provider, child) {
-        if (provider.isLoading || _isLoading) {
+        if (provider.isLoading) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -146,9 +124,9 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: provider.pagos.length,
+          itemCount: provider.pagosContrato.length,
           itemBuilder: (context, index) {
-            final pago = provider.pagos[index];
+            final pago = provider.pagosContrato[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 16),
               child: ListTile(
@@ -734,7 +712,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
                   final success = await provider.registrarPagoContrato(contrato.id, DateTime.now());
                   if (success) {
                     // Refresh the contract
-                    await provider.loadContratosByUserId();
+                    await provider.loadContratosByClienteId();
 
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(

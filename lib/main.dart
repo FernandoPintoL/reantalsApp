@@ -7,6 +7,7 @@ import 'controllers_providers/contrato_provider.dart';
 import 'controllers_providers/inmueble_provider.dart';
 import 'controllers_providers/pago_provider.dart';
 import 'controllers_providers/solicitud_alquiler_provider.dart';
+import 'controllers_providers/user_global_provider.dart';
 import 'services/ApiService.dart';
 import 'services/UrlConfigProvider.dart';
 import 'vista/auth/login_screen.dart';
@@ -49,6 +50,10 @@ class _MyAppState extends State<MyApp> {
         // Use the provided UrlConfigProvider if available, otherwise create a new one
         ChangeNotifierProvider<UrlConfigProvider>.value(
           value: widget.urlConfigProvider ?? UrlConfigProvider(),
+        ),
+        // Global user provider (singleton)
+        ChangeNotifierProvider<UserGlobalProvider>.value(
+          value: UserGlobalProvider(),
         ),
         ChangeNotifierProvider(create: (context) => AuthenticatedProvider()),
         ChangeNotifierProvider(create: (context) => InmuebleProvider()),
