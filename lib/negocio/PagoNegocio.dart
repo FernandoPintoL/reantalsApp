@@ -139,4 +139,42 @@ class PagoNegocio {
       );
     }
   }
+
+  Future<ResponseModel> getPagosPendientesByPropietarioId(int propietarioId) async {
+    try {
+      ResponseModel response = await apiService.get('pagos/pendientes/propietario/$propietarioId');
+      print('Response from getPagosPendientesByPropietarioId: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error fetching pagos pendientes by propietario id: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error fetching pagos pendientes by propietario id: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error fetching pagos pendientes by propietario id: $e',
+      );
+    }
+  }
+
+  Future<ResponseModel> getPagosCompletadosByPropietarioId(int propietarioId) async {
+    try {
+      ResponseModel response = await apiService.get('pagos/completados/propietario/$propietarioId');
+      print('Response from getPagosCompletadosByPropietarioId: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error fetching pagos completados by propietario id: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error fetching pagos completados by propietario id: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error fetching pagos completados by propietario id: $e',
+      );
+    }
+  }
 }

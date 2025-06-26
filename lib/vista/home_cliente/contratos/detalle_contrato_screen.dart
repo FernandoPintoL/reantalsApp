@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../../models/condicional_model.dart';
 import '../../../models/contrato_model.dart';
 import '../../../models/pago_model.dart';
 import '../../../controllers_providers/contrato_provider.dart';
@@ -604,7 +605,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await provider.updateContratoClienteAprobado(contrato.id, false);
+              await provider.updateContratoClienteAprobado(contrato.id, false, context: context);
               Navigator.pop(context); // Return to contracts list
             },
             child: const Text(
@@ -615,7 +616,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              await provider.updateContratoClienteAprobado(contrato.id, true);
+              await provider.updateContratoClienteAprobado(contrato.id, true, context: context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -686,11 +687,10 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
             ),
             ListTile(
               title: const Text('Pago con Blockchain'),
-              subtitle: const Text('Próximamente'),
               leading: Radio<String>(
                 value: 'blockchain',
                 groupValue: 'convencional',
-                onChanged: null, // Disabled for now
+                onChanged: (value) {}, // Disabled for now
               ),
             ),
           ],
@@ -709,7 +709,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
               try {
                 if (contrato.fechaPago == null) {
                   // Initial payment to activate contract
-                  final success = await provider.registrarPagoContrato(contrato.id, DateTime.now());
+                  final success = await provider.registrarPagoContrato(contrato.id, DateTime.now(), context: context);
                   if (success) {
                     // Refresh the contract
                     await provider.loadContratosByClienteId();
@@ -757,6 +757,7 @@ class _DetalleContratoScreenState extends State<DetalleContratoScreen> with Sing
                   }
                 }
               } catch (e) {
+                print('Error al registrar el pago: $e');
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(

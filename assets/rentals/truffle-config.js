@@ -67,11 +67,11 @@ module.exports = {
         // options below to some value.
         //
         development: {
-            host: "192.168.1.19",     // Localhost (default: none)
+            host: "192.168.236.22",     // Localhost (default: none)
             port: 7545,            // Standard Ethereum port (default: none)
             network_id: "*",       // Any network (default: none)
         },
-        sepolia: {
+        /*sepolia: {
             provider: () => new HDWalletProvider(
                 process.env.MNEMONIC,
                 `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`
@@ -93,7 +93,7 @@ module.exports = {
             confirmations: 2,
             timeoutBlocks: 200,
             skipDryRun: true
-        }
+        }*/
         //
         // An additional network, but with some advanced options…
         // advanced: {

@@ -9,7 +9,7 @@ class SolicitudAlquilerModel {
   int inmuebleId;
   int userId;
   String estado;
-  List<ServicioBasicoModel>? serviciosBasicos;
+  List<ServicioBasicoModel>? servicios_basicos;
   String? mensaje;
   Timestamp? createdAt;
   Timestamp? updatedAt;
@@ -23,7 +23,7 @@ class SolicitudAlquilerModel {
     required this.inmuebleId,
     required this.userId,
     this.estado = 'pendiente',
-    required this.serviciosBasicos,
+    required this.servicios_basicos,
     this.mensaje,
     Timestamp? createdAt,
     Timestamp? updatedAt,
@@ -39,7 +39,7 @@ class SolicitudAlquilerModel {
       'user_id': userId,
       'estado': estado,
       'servicios_basicos':
-          serviciosBasicos?.map((servicio) => servicio.toJson()).toList(),
+      servicios_basicos?.map((servicio) => servicio.toJson()).toList(),
       'mensaje': mensaje,
     };
   }
@@ -50,12 +50,7 @@ class SolicitudAlquilerModel {
       inmuebleId: map['inmueble_id'] ?? 0,
       userId: map['user_id'] ?? 0,
       estado: map['estado'] ?? 'pendiente',
-      serviciosBasicos:
-          map['servicios_basicos'] is List
-              ? ServicioBasicoModel.fromJsonList(
-                map['servicios_basicos'] as List<dynamic>?,
-              )
-              : null,
+      servicios_basicos: ServicioBasicoModel.fromJsonList(map['servicios_basicos']),
       mensaje: map['mensaje'],
       createdAt:
           map['created_at'] != null

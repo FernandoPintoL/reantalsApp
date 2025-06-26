@@ -5,6 +5,7 @@ class PagoModel{
   DateTime fechaPago;
   double monto;
   String estado;
+  String? descripcion;
   List<Map<String, dynamic>>? historialAcciones;
 
   PagoModel({
@@ -14,6 +15,7 @@ class PagoModel{
     required this.fechaPago,
     this.monto = 0.0,
     this.estado = '',
+    this.descripcion,
     this.historialAcciones,
   });
 
@@ -21,10 +23,11 @@ class PagoModel{
     return PagoModel(
       id: int.tryParse(json['id'].toString()) ?? 0,
       contratoId: int.tryParse(json['contrato_id'].toString()) ?? 0,
-      blockChainId: json['block_chain_id'],
+      blockChainId: json['blockchain_id'],
       fechaPago: DateTime.parse(json['fecha_pago']),
       monto: (json['monto'] is num) ? (json['monto'] as num).toDouble() : 0.0,
       estado: json['estado'] ?? '',
+      descripcion: json['descripcion'],
       historialAcciones: json['historial_acciones'] != null
           ? List<Map<String, dynamic>>.from(json['historial_acciones'])
           : null,
@@ -39,6 +42,7 @@ class PagoModel{
       'fecha_pago': fechaPago.toIso8601String(),
       'monto': monto,
       'estado': estado,
+      'descripcion': descripcion,
       'historial_acciones': historialAcciones ?? [],
     };
   }

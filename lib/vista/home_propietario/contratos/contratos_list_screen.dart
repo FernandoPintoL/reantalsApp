@@ -18,7 +18,9 @@ class _ContratosListScreenState extends State<ContratosListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadContratos();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadContratos();
+    });
   }
 
   Future<void> _loadContratos() async {

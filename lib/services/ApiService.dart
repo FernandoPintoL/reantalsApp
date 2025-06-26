@@ -115,6 +115,7 @@ class ApiService {
     Map<String, String>? headers,
   }) async {
     final url = Uri.parse('$_baseUrl$endpoint');
+    print('PUT request to: $url');
     final defaultHeaders = {'Content-Type': 'application/json'};
     try {
       final response = await http.put(

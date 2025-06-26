@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/pago_model.dart';
 import '../models/response_model.dart';
 import '../models/session_model.dart';
@@ -11,7 +12,7 @@ import '../vista/components/message_widget.dart';
 import 'blockchain_provider.dart';
 
 class PagoProvider extends ChangeNotifier {
-  final BlockchainProvider _blockchainProvider = BlockchainProvider();
+  final BlockchainProvider _blockchainProvider = BlockchainProvider.instance;
   final PagoNegocio _pagoNegocio = PagoNegocio();
   final AuthenticatedNegocio _authenticatedNegocio = AuthenticatedNegocio();
 
@@ -20,6 +21,7 @@ class PagoProvider extends ChangeNotifier {
   List<PagoModel> _pagosPendientesCliente = [];
   List<PagoModel> _pagosCompletadosCliente = [];
   List<PagoModel> _pagosPendientesPropietario = [];
+  List<PagoModel> _pagosCompletadosPropietario = [];
   bool _isLoading = false;
   String? _message;
   UserModel? _currentUser;
@@ -62,24 +64,6 @@ class PagoProvider extends ChangeNotifier {
       ResponseModel response = await _pagoNegocio.createPago(pago);
       if (response.isSuccess && response.data != null) {
         message = 'Pago creado exitosamente';
-        // Create payment on blockchain if service is initialized
-        if (_blockchainProvider.isInitialized) {
-          try {
-            final blockchainSuccess = await _blockchainProvider.makePayment(pago.contratoId, pago.monto);
-            if (blockchainSuccess) {
-              message = '$message y procesado en blockchain';
-              // Get blockchain transaction ID and update payment
-              final blockchainDetails = await _blockchainProvider.getContractDetails(pago.contratoId);
-              if (blockchainDetails != null && blockchainDetails.containsKey('transactionHash')) {
-                final blockchainId = blockchainDetails['transactionHash'];
-                await _pagoNegocio.updatePagoBlockchain(pago.id, blockchainId);
-              }
-            }
-          } catch (blockchainError) {
-            // Don't fail the entire operation if blockchain fails
-            print('Error processing payment on blockchain: $blockchainError');
-          }
-        }
         // Refresh the list
         await loadPagosByClienteId();
         isLoading = false;
@@ -91,6 +75,70 @@ class PagoProvider extends ChangeNotifier {
       }
     } catch (e) {
       message = 'Error al crear el pago: $e';
+      isLoading = false;
+      return false;
+    }
+  }
+
+  // Method to create a payment through blockchain
+  Future<bool> createPagoBlockchain(PagoModel pago) async {
+    try {
+      isLoading = true;
+      messageType = MessageType.info;
+      message = 'Procesando pago a través de blockchain...';
+
+      if (_currentUser == null) {
+        await loadCurrentUser();
+        if (_currentUser == null) {
+          messageType = MessageType.error;
+          message = 'No se pudo cargar el usuario actual';
+          isLoading = false;
+          return false;
+        }
+      }
+
+      // The blockchain will be automatically initialized when needed
+
+      // Make payment through blockchain first
+      final blockchainResult = await _blockchainProvider.makePayment(pago.contratoId, pago.monto);
+      if (blockchainResult == null) {
+        messageType = MessageType.error;
+        message = 'Error al procesar el pago en blockchain: ${_blockchainProvider.message}';
+        isLoading = false;
+        return false;
+      }
+
+      // Get blockchain transaction ID
+      final txHash = blockchainResult['txHash'];
+      if (txHash == null) {
+        messageType = MessageType.error;
+        message = 'Error: No se pudo obtener el ID de transacción blockchain';
+        isLoading = false;
+        return false;
+      }
+
+      // Now create the payment record in the database after blockchain processing
+      pago.blockChainId = txHash; // Set the blockchain ID in the model
+      pago.estado = 'completado'; // Set status to completed
+
+      ResponseModel response = await _pagoNegocio.createPago(pago);
+      if (!response.isSuccess || response.data == null) {
+        messageType = MessageType.error;
+        message = response.messageError ?? 'Error al crear el registro de pago en la base de datos';
+        isLoading = false;
+        return false;
+      }
+
+      messageType = MessageType.success;
+      message = 'Pago procesado exitosamente a través de blockchain. ID de transacción: $txHash';
+
+      // Refresh the list
+      await loadPagosByClienteId();
+      isLoading = false;
+      return true;
+    } catch (e) {
+      messageType = MessageType.error;
+      message = 'Error al procesar el pago a través de blockchain: $e';
       isLoading = false;
       return false;
     }
@@ -153,6 +201,54 @@ class PagoProvider extends ChangeNotifier {
       }
     } catch (e) {
       message = 'Error al cargar los pagos completados del usuario: $e';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  Future<void> loadPagosPendientesPropietario() async {
+    if (currentUser == null) {
+      await loadCurrentUser();
+      if (currentUser == null) {
+        message = 'No se pudo cargar el usuario actual';
+        return;
+      }
+    }
+    try {
+      isLoading = true;
+      ResponseModel response = await _pagoNegocio.getPagosPendientesByPropietarioId(currentUser!.id);
+      if (response.isSuccess && response.data != null) {
+        pagosPendientesPropietario = PagoModel.fromList(response.data);
+        message = null; // Reset message on successful load
+      } else {
+        message = response.messageError ?? 'No se encontraron pagos pendientes para este propietario';
+      }
+    } catch (e) {
+      message = 'Error al cargar los pagos pendientes del propietario: $e';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  Future<void> loadPagosCompletadosPropietario() async {
+    if (currentUser == null) {
+      await loadCurrentUser();
+      if (currentUser == null) {
+        message = 'No se pudo cargar el usuario actual';
+        return;
+      }
+    }
+    try {
+      isLoading = true;
+      ResponseModel response = await _pagoNegocio.getPagosCompletadosByPropietarioId(currentUser!.id);
+      if (response.isSuccess && response.data != null) {
+        pagosCompletadosPropietario = PagoModel.fromList(response.data);
+        message = null; // Reset message on successful load
+      } else {
+        message = response.messageError ?? 'No se encontraron pagos completados para este propietario';
+      }
+    } catch (e) {
+      message = 'Error al cargar los pagos completados del propietario: $e';
     } finally {
       isLoading = false;
     }
@@ -259,6 +355,12 @@ class PagoProvider extends ChangeNotifier {
   List<PagoModel> get pagosContrato => _pagosContrato;
   set pagosContrato(List<PagoModel> value) {
     _pagosContrato = value;
+    notifyListeners();
+  }
+
+  List<PagoModel> get pagosCompletadosPropietario => _pagosCompletadosPropietario;
+  set pagosCompletadosPropietario(List<PagoModel> value) {
+    _pagosCompletadosPropietario = value;
     notifyListeners();
   }
 }

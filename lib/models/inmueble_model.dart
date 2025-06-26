@@ -43,9 +43,7 @@ class InmuebleModel {
       precio: double.tryParse(doc['precio']?.toString() ?? '0') ?? 0.0,
       isOcupado: doc['isOcupado'] ?? false,
       accesorios: null,
-      servicios_basicos: doc['servicios_basicos'] is List
-          ? ServicioBasicoModel.fromJsonList(doc['servicios_basicos'] as List<dynamic>?)
-          : null,
+      servicios_basicos: ServicioBasicoModel.fromJsonList(doc['servicios_basicos']),
       tipoInmuebleId: doc['tipo_inmueble_id'] ?? 0,
     );
     if (doc['tipo_inmueble'] != null) {
@@ -58,6 +56,7 @@ class InmuebleModel {
     } else {
       model.propietario = null;
     }
+
     return model;
   }
   Map<String, dynamic> toMap() {

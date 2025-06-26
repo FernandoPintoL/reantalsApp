@@ -13,9 +13,7 @@ import 'inmueble_card.dart';
 import 'solicitud_alquiler_screen.dart';
 
 class InmuebleScreen extends StatefulWidget {
-  final bool initializeBlockchain;
-
-  const InmuebleScreen({super.key, this.initializeBlockchain = false});
+  const InmuebleScreen({super.key});
 
   @override
   State<InmuebleScreen> createState() => _InmuebleScreenState();
@@ -27,28 +25,6 @@ class _InmuebleScreenState extends State<InmuebleScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initializeBlockchain) {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        print('Initializing blockchain provider...');
-        final blockchainProvider = Provider.of<BlockchainProvider>(
-          context,
-          listen: false,
-        );
-
-        // Cargar valores desde el archivo .env
-        final rpcUrl = dotenv.env['BLOCKCHAIN_RPC_URL_LOCAL']!;
-        final privateKey = dotenv.env['INFURA_API_KEY']!;
-        final chainId = int.parse(dotenv.env['BLOCKCHAIN_CHAIN_ID_LOCAL']!);
-
-        // Initialize with test network values
-        await blockchainProvider.initialize(
-          rpcUrl: rpcUrl,
-          privateKey: privateKey,
-          // Replace with actual private key
-          chainId: chainId, // Sepolia testnet
-        );
-      });
-    }
   }
 
   Future<void> _loadPageForUser() async {
@@ -126,7 +102,24 @@ class _InmuebleScreenState extends State<InmuebleScreen> {
                 ),
               ))
               : context.watch<InmuebleProvider>().inmuebles.isEmpty
-              ? const Center(child: Text('No hay propiedades disponibles'))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'No hay propiedades disponibles',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<InmuebleProvider>().loadInmuebles();
+                        },
+                        child: const Text('Intentar recargar'),
+                      ),
+                    ],
+                  ),
+                )
               : RefreshIndicator(
                 onRefresh: context.read<InmuebleProvider>().loadInmuebles,
                 child: ListView.builder(

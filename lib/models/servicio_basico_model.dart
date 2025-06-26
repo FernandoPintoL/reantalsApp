@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class ServicioBasicoModel {
   int id;
   String nombre;
@@ -16,7 +18,6 @@ class ServicioBasicoModel {
       id: json['id'] ?? 0,
       nombre: json['nombre'] ?? '',
       descripcion: json['descripcion'],
-      isSelected: json['is_selected'] ?? false,
     );
   }
 
@@ -25,15 +26,39 @@ class ServicioBasicoModel {
       'id': id,
       'nombre': nombre,
       'descripcion': descripcion,
-      'is_selected': isSelected,
     };
   }
 
   static List<ServicioBasicoModel> fromJsonList(dynamic jsonList) {
+    // Si es null, retorna lista vacía
     if (jsonList == null) return [];
-    return List<ServicioBasicoModel>.from(
-      jsonList.map((item) => ServicioBasicoModel.fromJson(item)),
-    );
+
+    // Si es String (JSON sin parsear), intenta convertirlo a List
+    if (jsonList is String) {
+      try {
+        jsonList = json.decode(jsonList) as List;
+      } catch (e) {
+        print('Error al decodificar JSON: $e');
+        return [];
+      }
+    }
+
+    // Si ya es una List, procesa los items
+    if (jsonList is List) {
+      return jsonList.map((item) {
+        try {
+          // Si el item es un Map, pero no está tipado como <String, dynamic>
+          if (item is Map) {
+            final jsonItem = Map<String, dynamic>.from(item); // Conversión segura
+            return ServicioBasicoModel.fromJson(jsonItem);
+          }
+          return ServicioBasicoModel(nombre: 'Inválido', isSelected: false);
+        } catch (e) {
+          return ServicioBasicoModel(nombre: 'Error', isSelected: false);
+        }
+      }).toList();
+    }
+    return [];
   }
 
   // Default list of basic services

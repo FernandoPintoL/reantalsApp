@@ -52,6 +52,8 @@ dependencies:
   web3dart: ^2.7.1
   http: ^1.1.2
   shared_preferences: ^2.2.2
+  bip39: ^1.0.6
+  hex: ^0.2.0
 
   # UI and utilities
   image_picker: ^1.0.5

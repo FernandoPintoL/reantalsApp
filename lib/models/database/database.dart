@@ -13,6 +13,7 @@ class AppDatabase {
         id INTEGER PRIMARY KEY,
         email TEXT,
         usernick TEXT,
+        wallet_address TEXT NULL,
         name TEXT,
         num_id TEXT,
         telefono TEXT NULL,

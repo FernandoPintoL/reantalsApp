@@ -2,53 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'inmueble_model.dart';
 import 'user_model.dart';
 import 'solicitud_alquiler_model.dart';
+import 'condicional_model.dart';
 import '../utils/HandlerDateTime.dart';
-
-class CondicionalModel {
-  int id;
-  String descripcion;
-  String tipoCondicion;
-  String accion;
-  Map<String, dynamic>? parametros;
-
-  CondicionalModel({
-    this.id = 0,
-    required this.descripcion,
-    required this.tipoCondicion,
-    required this.accion,
-    this.parametros,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'descripcion': descripcion,
-      'tipo_condicion': tipoCondicion,
-      'accion': accion,
-      'parametros': parametros,
-    };
-  }
-
-  factory CondicionalModel.fromMap(Map<String, dynamic> map) {
-    return CondicionalModel(
-      id: map['id'] ?? 0,
-      descripcion: map['descripcion'] ?? '',
-      tipoCondicion: map['tipo_condicion'] ?? '',
-      accion: map['accion'] ?? '',
-      parametros: map['parametros'],
-    );
-  }
-
-  static List<CondicionalModel> fromJsonList(dynamic jsonList) {
-    if (jsonList is List) {
-      return jsonList.map((item) => CondicionalModel.fromMap(item)).toList();
-    } else if (jsonList is Map<String, dynamic>) {
-      return [CondicionalModel.fromMap(jsonList)];
-    } else {
-      return [];
-    }
-  }
-}
 
 class ContratoModel {
   int id;
@@ -62,6 +17,7 @@ class ContratoModel {
   String estado = '';
   List<CondicionalModel> condicionales;
   String? blockchainAddress;
+  String? blockchainTxHash;
   bool clienteAprobado;
   DateTime? fechaPago;
   Timestamp? createdAt;
@@ -71,6 +27,14 @@ class ContratoModel {
   late UserModel? cliente;
   late InmuebleModel? inmueble;
   late SolicitudAlquilerModel? solicitud;
+
+  // Getter para obtener el propietario del inmueble
+  UserModel? get propietario {
+    if (inmueble != null && inmueble!.propietario != null) {
+      return inmueble!.propietario;
+    }
+    return null;
+  }
 
   ContratoModel({
     this.id = 0,
@@ -84,6 +48,7 @@ class ContratoModel {
     this.estado = '',
     this.condicionales = const [],
     this.blockchainAddress,
+    this.blockchainTxHash,
     this.clienteAprobado = false,
     this.fechaPago,
     Timestamp? createdAt,
@@ -107,17 +72,14 @@ class ContratoModel {
       'estado': estado,
       'condicionales': condicionales.map((c) => c.toMap()).toList(),
       'blockchain_address': blockchainAddress,
+      'blockchain_tx_hash': blockchainTxHash,
       'cliente_aprobado': clienteAprobado,
-      'fecha_pago': fechaPago?.toIso8601String(),
-      'created_at': createdAt,
-      'updated_at': updatedAt,
-      'user': cliente?.toMap(),
-      'inmueble': inmueble?.toMap(),
-      'solicitud': solicitud?.toMap(),
+      'fecha_pago': fechaPago?.toIso8601String()
     };
   }
 
   factory ContratoModel.fromMap(Map<String, dynamic> map) {
+    print('ContratoModel.fromMap - Input: ${map['monto']}');
     ContratoModel model = ContratoModel(
       id: map['id'] ?? 0,
       inmuebleId: map['inmueble_id'] ?? 0,
@@ -125,13 +87,12 @@ class ContratoModel {
       solicitudId: map['solicitud_id'],
       fechaInicio: DateTime.parse(map['fecha_inicio']),
       fechaFin: DateTime.parse(map['fecha_fin']),
-      monto: (map['monto'] is num) ? (map['monto'] as num).toDouble() : 0.0,
+      monto: double.tryParse(map['monto']?.toString() ?? '0') ?? 0.0,
       detalle: map['detalle'],
       estado: map['estado'] ?? '',
-      condicionales: map['condicionales'] != null
-          ? CondicionalModel.fromJsonList(map['condicionales'])
-          : [],
+      condicionales: CondicionalModel.fromJsonList(map['condicionales']),
       blockchainAddress: map['blockchain_address'],
+      blockchainTxHash: map['blockchain_tx_hash'],
       clienteAprobado: map['cliente_aprobado'] ?? false,
       fechaPago: map['fecha_pago'] != null ? DateTime.parse(map['fecha_pago']) : null,
       createdAt: map['created_at'] is Timestamp ? map['created_at'] : null,

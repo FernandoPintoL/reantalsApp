@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../controllers_providers/inmueble_provider.dart';
 import '../../../models/inmueble_model.dart';
 import '../../components/Loading.dart';
@@ -77,6 +79,13 @@ class _MyInmueblesScreenState extends State<MyInmueblesScreen> {
                     style: TextStyle(fontSize: 18),
                   ),
                   const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      provider.loadInmueblesByPropietarioId();
+                    },
+                    child: const Text('Recargar Inmuebles'),
+                  ),
+                  const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: () {
                       Navigator.push(
@@ -225,9 +234,25 @@ class _MyInmueblesScreenState extends State<MyInmueblesScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8.0, // gap between adjacent chips
+                  runSpacing: 4.0, // gap between lines
                   children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        _launchURL(dotenv.env['URL_CONTROL_CHAPA'] ?? '');
+                      },
+                      icon: const Icon(Icons.lock, color: Colors.blue),
+                      label: const Text('Control Chapa'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        _launchURL(dotenv.env['URL_CONTROL_LUCES'] ?? '');
+                      },
+                      icon: const Icon(Icons.lightbulb, color: Colors.amber),
+                      label: const Text('Control Luces'),
+                    ),
                     TextButton.icon(
                       onPressed: () {
                         provider.selectInmueble(inmueble);
@@ -245,7 +270,6 @@ class _MyInmueblesScreenState extends State<MyInmueblesScreen> {
                       icon: const Icon(Icons.edit),
                       label: const Text('Editar'),
                     ),
-                    const SizedBox(width: 8),
                     TextButton.icon(
                       onPressed: () {
                         _showDeleteConfirmationDialog(
@@ -268,6 +292,22 @@ class _MyInmueblesScreenState extends State<MyInmueblesScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _launchURL(String url) async {
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('URL no configurada')),
+      );
+      return;
+    }
+
+    final Uri uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo abrir $url')),
+      );
+    }
   }
 
   void _showDeleteConfirmationDialog(

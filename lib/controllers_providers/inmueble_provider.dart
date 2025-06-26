@@ -55,8 +55,10 @@ class InmuebleProvider extends ChangeNotifier {
       isLoading = true;
       // Simula una llamada a la base de datos para obtener inmuebles
       _responseModel = await _inmuebleNegocio.getInmuebles("");
+      print('Respuesta del negocio: ${_responseModel.isSuccess}, Data: ${_responseModel.data}');
       if (_responseModel.isSuccess && _responseModel.data != null) {
         inmuebles = InmuebleModel.fromList(_responseModel.data);
+        print('Inmuebles cargados: ${inmuebles.first.servicios_basicos.toString()}');
         messageType = MessageType.success;
         message = _responseModel.message;
       } else {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../models/condicional_model.dart';
 import '../../models/contrato_model.dart';
 import '../../models/pago_model.dart';
 import '../../controllers_providers/contrato_provider.dart';

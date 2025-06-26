@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../../controllers_providers/blockchain_provider.dart';
 import '../../../models/solicitud_alquiler_model.dart';
 import '../../../models/contrato_model.dart';
 import '../../../controllers_providers/contrato_provider.dart';
+import '../../../models/condicional_model.dart';
 
 class CrearContratoScreen extends StatefulWidget {
   final SolicitudAlquilerModel solicitud;
@@ -21,41 +23,41 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
   final _formKey = GlobalKey<FormState>();
   final _detalleController = TextEditingController();
   final _montoController = TextEditingController();
-  
+  final _fechaInicioController = TextEditingController();
+  final _fechaFinController = TextEditingController();
+
   DateTime _fechaInicio = DateTime.now();
   DateTime _fechaFin = DateTime.now().add(const Duration(days: 365));
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      loadData();
+    });
+
+  }
+  void loadData() {
+    // This method can be used to load any initial data if needed
+    // Currently, it is not used but can be implemented later
     // Set initial monto based on property price
     if (widget.solicitud.inmueble != null) {
       _montoController.text = widget.solicitud.inmueble!.precio.toString();
     }
-    
-    // Add default conditionals
-    context.read<ContratoProvider>().condicionales = [
-      CondicionalModel(
-        id: 1,
-        descripcion: 'Retraso en el pago mensual',
-        tipoCondicion: 'retraso_pago',
-        accion: 'multa',
-        parametros: {'dias_retraso': 5, 'porcentaje_multa': 10},
-      ),
-      CondicionalModel(
-        id: 2,
-        descripcion: 'Daños a la propiedad',
-        tipoCondicion: 'daños',
-        accion: 'reparacion',
-        parametros: {'responsable': 'inquilino'},
-      ),
-    ];
+
+    // Initialize date controllers
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    _fechaInicioController.text = dateFormat.format(_fechaInicio);
+    _fechaFinController.text = dateFormat.format(_fechaFin);
+
   }
 
   @override
   void dispose() {
     _detalleController.dispose();
     _montoController.dispose();
+    _fechaInicioController.dispose();
+    _fechaFinController.dispose();
     super.dispose();
   }
 
@@ -69,9 +71,14 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
     if (picked != null && picked != _fechaInicio) {
       setState(() {
         _fechaInicio = picked;
+        // Update controller text
+        _fechaInicioController.text = DateFormat('dd/MM/yyyy').format(_fechaInicio);
+
         // Ensure fechaFin is after fechaInicio
         if (_fechaFin.isBefore(_fechaInicio)) {
           _fechaFin = _fechaInicio.add(const Duration(days: 365));
+          // Update fechaFin controller text as well
+          _fechaFinController.text = DateFormat('dd/MM/yyyy').format(_fechaFin);
         }
       });
     }
@@ -87,6 +94,8 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
     if (picked != null && picked != _fechaFin) {
       setState(() {
         _fechaFin = picked;
+        // Update controller text
+        _fechaFinController.text = DateFormat('dd/MM/yyyy').format(_fechaFin);
       });
     }
   }
@@ -119,6 +128,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                   DropdownMenuItem(value: 'retraso_pago', child: Text('Retraso en el Pago')),
                   DropdownMenuItem(value: 'daños', child: Text('Daños a la Propiedad')),
                   DropdownMenuItem(value: 'incumplimiento', child: Text('Incumplimiento de Contrato')),
+                  DropdownMenuItem(value: 'seguridad', child: Text('Seguridad de accesos')),
                   DropdownMenuItem(value: 'otro', child: Text('Otro')),
                 ],
                 onChanged: (value) {
@@ -134,6 +144,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                   DropdownMenuItem(value: 'multa', child: Text('Aplicar Multa')),
                   DropdownMenuItem(value: 'reparacion', child: Text('Reparación')),
                   DropdownMenuItem(value: 'rescision', child: Text('Rescisión de Contrato')),
+                  DropdownMenuItem(value: 'accesos', child: Text('Control de Accesos')),
                   DropdownMenuItem(value: 'otro', child: Text('Otra Acción')),
                 ],
                 onChanged: (value) {
@@ -180,11 +191,16 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
   }
 
   Future<void> _submitContrato() async {
-    if (_formKey.currentState!.validate()) {
+    // Add null check for _formKey.currentState
+    final formState = _formKey.currentState;
+    if (formState == null) return;
+
+    if (formState.validate()) {
       try {
         context.read<ContratoProvider>().isLoading = true;
         final provider = Provider.of<ContratoProvider>(context, listen: false);
-        
+        final blockchainProvider = Provider.of<BlockchainProvider>(context, listen: false);
+        print('blockchainProvider.isLoading ${blockchainProvider.isInitialized}');
         final success = await provider.createContratoFromSolicitud(
           widget.solicitud,
           fechaInicio: _fechaInicio,
@@ -192,8 +208,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
           monto: double.parse(_montoController.text),
           detalle: _detalleController.text,
           condicionales: context.read<ContratoProvider>().condicionales,
+          context: context,
         );
-        
+
         if (mounted) {
           if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -211,9 +228,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
               ),
             );
           }
+          // Update loading state only if still mounted
+          context.read<ContratoProvider>().isLoading = false;
         }
-        if(!mounted) return; // Check if the widget is still mounted before updating state
-        context.read<ContratoProvider>().isLoading = false;
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -222,6 +239,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
               backgroundColor: Colors.red,
             ),
           );
+          context.read<ContratoProvider>().isLoading = false;
         }
       }
     }
@@ -230,7 +248,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crear Contrato'),
@@ -277,25 +295,23 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Contract details section
                     Text(
                       'Detalles del Contrato',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Fecha inicio
                     Row(
                       children: [
                         Expanded(
                           child: TextFormField(
                             readOnly: true,
-                            controller: TextEditingController(
-                              text: dateFormat.format(_fechaInicio),
-                            ),
+                            controller: _fechaInicioController,
                             decoration: const InputDecoration(
                               labelText: 'Fecha de Inicio',
                               border: OutlineInputBorder(),
@@ -308,9 +324,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                         Expanded(
                           child: TextFormField(
                             readOnly: true,
-                            controller: TextEditingController(
-                              text: dateFormat.format(_fechaFin),
-                            ),
+                            controller: _fechaFinController,
                             decoration: const InputDecoration(
                               labelText: 'Fecha de Fin',
                               border: OutlineInputBorder(),
@@ -321,9 +335,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Monto
                     TextFormField(
                       controller: _montoController,
@@ -343,9 +357,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                         return null;
                       },
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // Detalle
                     TextFormField(
                       controller: _detalleController,
@@ -356,9 +370,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                       ),
                       maxLines: 4,
                     ),
-                    
+
                     const SizedBox(height: 24),
-                    
+
                     // Conditionals section
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -384,7 +398,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                       style: TextStyle(color: Colors.grey),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Conditionals list
                     ListView.builder(
                       shrinkWrap: true,
@@ -405,9 +419,9 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
                         );
                       },
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // Submit button
                     SizedBox(
                       width: double.infinity,
@@ -430,7 +444,7 @@ class _CrearContratoScreenState extends State<CrearContratoScreen> {
             ),
     );
   }
-  
+
   String _getAccionText(String accion) {
     switch (accion.toLowerCase()) {
       case 'multa':

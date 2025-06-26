@@ -140,9 +140,14 @@ class ContratoNegocio {
     }
   }
 
-  Future<ResponseModel> updateContratoBlockchain(int id, String blockchainAddress) async {
+  Future<ResponseModel> updateContratoBlockchain(int id, String blockchainAddress, {String? blockchainTxHash}) async {
     try {
-      ResponseModel response = await apiService.put('contratos/$id/blockchain', {'blockchain_address': blockchainAddress});
+      Map<String, dynamic> data = {'blockchain_address': blockchainAddress};
+      if (blockchainTxHash != null) {
+        data['blockchain_tx_hash'] = blockchainTxHash;
+      }
+
+      ResponseModel response = await apiService.put('contratos/$id/blockchain', data);
       print('Response from updateContratoBlockchain: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -155,6 +160,25 @@ class ContratoNegocio {
         statusCode: 500,
         data: null,
         message: 'Error updating contrato blockchain: $e',
+      );
+    }
+  }
+
+  Future<ResponseModel> updateContratoBlockchainTxHash(int id, String blockchainTxHash) async {
+    try {
+      ResponseModel response = await apiService.put('contratos/$id/blockchain-tx', {'blockchain_tx_hash': blockchainTxHash});
+      print('Response from updateContratoBlockchainTxHash: ${response.toJson()}');
+      return response;
+    } catch (e) {
+      print('Error updating contrato blockchain tx hash: $e');
+      return ResponseModel(
+        isRequest: false,
+        isSuccess: false,
+        isMessageError: true,
+        messageError: 'Error updating contrato blockchain tx hash: $e',
+        statusCode: 500,
+        data: null,
+        message: 'Error updating contrato blockchain tx hash: $e',
       );
     }
   }

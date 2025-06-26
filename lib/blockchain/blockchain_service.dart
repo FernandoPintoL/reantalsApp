@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
 import 'package:web3dart/web3dart.dart';
+import 'package:bip39/bip39.dart' as bip39;
+import 'package:hex/hex.dart';
 import '../models/contrato_model.dart';
 
 class BlockchainService {
@@ -48,8 +50,42 @@ class BlockchainService {
       '0x9fa02580Bd718D5ad6e2f873148C9414C0962F40',
     ); // Replace with actual deployed address
 
+    // Check if privateKey is a mnemonic phrase or a hex private key
+    String hexPrivateKey;
+    if (privateKey.contains(' ')) {
+      // It's a mnemonic phrase, validate and convert to private key
+      try {
+        // Validate mnemonic phrase
+        if (!bip39.validateMnemonic(privateKey)) {
+          throw FormatException('Invalid mnemonic phrase. Please check for typos or incorrect words.');
+        }
+
+        // Generate seed from mnemonic
+        final seed = bip39.mnemonicToSeedHex(privateKey);
+        // Use the first 32 bytes (64 hex chars) as the private key
+        hexPrivateKey = seed.substring(0, 64);
+
+        print('Successfully converted mnemonic to private key');
+      } catch (e) {
+        if (e is FormatException) {
+          throw e; // Re-throw our custom format exception
+        }
+        // Check for common issues in the mnemonic
+        if (privateKey.contains('carck')) {
+          throw FormatException('Invalid mnemonic phrase: "carck" should be "crack". Please correct the typo.');
+        }
+        throw FormatException('Error processing mnemonic phrase: $e. Please ensure it is a valid BIP39 mnemonic.');
+      }
+    } else {
+      // It's already a hex private key
+      if (!_isValidHex(privateKey)) {
+        throw FormatException('Invalid hex private key. It must be a valid hexadecimal string.');
+      }
+      hexPrivateKey = privateKey;
+    }
+
     // Create credentials from private key
-    _credentials = EthPrivateKey.fromHex(privateKey);
+    _credentials = EthPrivateKey.fromHex(hexPrivateKey);
 
     // Load contract
     final contractData = jsonDecode(contractABI);
@@ -116,57 +152,70 @@ class BlockchainService {
   }
 
   // Create a new rental contract on the blockchain
-  Future<String> createRentalContract(
+  Future<Map<String, String>> createRentalContract(
     ContratoModel contrato,
     String landlordAddress,
     String tenantAddress,
   ) async {
-    // Convert contract data to blockchain format
-    final contractId = BigInt.from(contrato.id);
-    final propertyId = BigInt.from(contrato.inmuebleId);
-    final rentAmount = BigInt.from(
-      (contrato.monto * 1e18).toInt(),
-    ); // Convert to wei
-    final depositAmount = BigInt.from(
-      (contrato.monto * 1e18).toInt(),
-    ); // Use same amount for deposit
-    final startDate = BigInt.from(
-      contrato.fechaInicio.millisecondsSinceEpoch ~/ 1000,
-    );
-    final endDate = BigInt.from(
-      contrato.fechaFin.millisecondsSinceEpoch ~/ 1000,
-    );
-    final termsHash = 'ipfs://QmHash'; // Replace with actual IPFS hash if available
+    try{
+      print('Creating rental contract for property ID: ${contrato.inmuebleId}');
+      // Convert contract data to blockchain format
+      final contractId = BigInt.from(contrato.id);
+      final propertyId = BigInt.from(contrato.inmuebleId);
+      final rentAmount = BigInt.from(
+        (contrato.monto * 1e18).toInt(),
+      ); // Convert to wei
+      final depositAmount = BigInt.from(
+        (contrato.monto * 1e18).toInt(),
+      ); // Use same amount for deposit
+      final startDate = BigInt.from(
+        contrato.fechaInicio.millisecondsSinceEpoch ~/ 1000,
+      );
+      final endDate = BigInt.from(
+        contrato.fechaFin.millisecondsSinceEpoch ~/ 1000,
+      );
+      final termsHash = 'ipfs://QmHash'; // Replace with actual IPFS hash if available
 
-    // Create transaction
-    final transaction = Transaction.callContract(
-      contract: _contract,
-      function: _createContract,
-      parameters: [
-        contractId,
-        EthereumAddress.fromHex(landlordAddress),
-        EthereumAddress.fromHex(tenantAddress),
-        propertyId,
-        rentAmount,
-        depositAmount,
-        startDate,
-        endDate,
-        termsHash,
-      ],
-    );
+      // Create transaction
+      final transaction = Transaction.callContract(
+        contract: _contract,
+        function: _createContract,
+        parameters: [
+          contractId,
+          EthereumAddress.fromHex('0x0000000000000000000000000000000000000001'),
+          EthereumAddress.fromHex('0x0000000000000000000000000000000000000002'),
+          propertyId,
+          rentAmount,
+          depositAmount,
+          startDate,
+          endDate,
+          termsHash,
+        ],
+      );
 
-    // Send transaction
-    final txHash = await _client.sendTransaction(
-      _credentials,
-      transaction,
-      chainId: _chainId,
-    );
+      // Send transaction
+      final txHash = await _client.sendTransaction(
+        _credentials,
+        transaction,
+        chainId: _chainId,
+      );
 
-    return txHash;
+      // Wait for transaction receipt to get contract address
+      final receipt = await _client.getTransactionReceipt(txHash);
+      final contractAddress = receipt?.contractAddress?.hex ?? '';
+
+      return {
+        'txHash': txHash,
+        'contractAddress': contractAddress,
+      };
+    }catch (e) {
+      print('Error creating rental contract: $e');
+      throw Exception('Failed to create rental contract: $e');
+    }
   }
 
   // Approve a contract on the blockchain
-  Future<String> approveContract(int contractId) async {
+  Future<Map<String, String>> approveContract(int contractId) async {
     final transaction = Transaction.callContract(
       contract: _contract,
       function: _approveContract,
@@ -179,11 +228,17 @@ class BlockchainService {
       chainId: _chainId,
     );
 
-    return txHash;
+    // Wait for transaction receipt
+    final receipt = await _client.getTransactionReceipt(txHash);
+
+    return {
+      'txHash': txHash,
+      'status': receipt?.status == 1 ? 'success' : 'failed',
+    };
   }
 
   // Make a payment for a contract
-  Future<String> makePayment(int contractId, double amount) async {
+  Future<Map<String, String>> makePayment(int contractId, double amount) async {
     final amountInWei = BigInt.from((amount * 1e18).toInt());
 
     final transaction = Transaction.callContract(
@@ -199,7 +254,14 @@ class BlockchainService {
       chainId: _chainId,
     );
 
-    return txHash;
+    // Wait for transaction receipt
+    final receipt = await _client.getTransactionReceipt(txHash);
+
+    return {
+      'txHash': txHash,
+      'status': receipt?.status == 1 ? 'success' : 'failed',
+      'amount': amount.toString(),
+    };
   }
 
   // Get contract details from the blockchain
@@ -253,6 +315,26 @@ class BlockchainService {
       default:
         return 'desconocido';
     }
+  }
+
+  // Helper method to validate hex strings
+  bool _isValidHex(String hex) {
+    // Remove '0x' prefix if present
+    if (hex.startsWith('0x')) {
+      hex = hex.substring(2);
+    }
+
+    // Check if the string contains only hex characters and has even length
+    return RegExp(r'^[0-9a-fA-F]+$').hasMatch(hex) && hex.length % 2 == 0;
+  }
+
+  // Get the wallet address from the credentials
+  String getWalletAddress() {
+    if (_credentials is EthPrivateKey) {
+      final address = (_credentials as EthPrivateKey).address.hex;
+      return address;
+    }
+    throw Exception('Credentials not initialized or not EthPrivateKey');
   }
 
   // Dispose resources

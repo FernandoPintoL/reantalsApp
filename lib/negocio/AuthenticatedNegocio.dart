@@ -152,4 +152,92 @@ class AuthenticatedNegocio {
       );
     }
   }
+
+  // Actualizar perfil de usuario
+  Future<ResponseModel> updateUserProfile(UserModel user) async {
+    final String endpoint = 'users/${user.id}';
+    print("Cuerpo de la solicitud de actualización: ${user.toMap()}");
+    try {
+      ResponseModel response = await apiService.put(endpoint, user.toMap());
+      print("Respuesta de la API: ${response.data}");
+      if (response.isSuccess) {
+        // Actualizar el usuario en la sesión local
+        UserModel updatedUser = UserModel.mapToModel(response.data);
+        await userNegocio.updateUser(updatedUser);
+        return ResponseModel(
+          isSuccess: true,
+          isRequest: response.isRequest,
+          isMessageError: response.isMessageError,
+          statusCode: response.statusCode,
+          message: "Perfil actualizado correctamente",
+          messageError: response.messageError,
+          data: updatedUser.toMap(),
+        );
+      } else {
+        return ResponseModel(
+          isSuccess: false,
+          isRequest: response.isRequest,
+          isMessageError: true,
+          statusCode: response.statusCode,
+          message: "Error al actualizar el perfil",
+          messageError: response.messageError,
+          data: null,
+        );
+      }
+    } catch (e) {
+      // Manejar la excepción
+      print("Error al realizar la solicitud de actualización de perfil: $e");
+      return ResponseModel(
+        isSuccess: false,
+        isRequest: false,
+        isMessageError: true,
+        statusCode: 500,
+        message: 'Error al realizar la solicitud de actualización de perfil',
+        messageError: e.toString(),
+        data: null,
+      );
+    }
+  }
+
+  // getUser
+  Future<ResponseModel> getUser(int id) async {
+    try{
+      final String endpoint = 'users/$id';
+      ResponseModel response = await apiService.get(endpoint);
+      if (response.isSuccess) {
+        UserModel user = UserModel.mapToModel(response.data);
+        return ResponseModel(
+          isSuccess: true,
+          isRequest: response.isRequest,
+          isMessageError: response.isMessageError,
+          statusCode: response.statusCode,
+          message: "Usuario obtenido correctamente",
+          messageError: response.messageError,
+          data: user.toMap(),
+        );
+      } else {
+        return ResponseModel(
+          isSuccess: false,
+          isRequest: response.isRequest,
+          isMessageError: true,
+          statusCode: response.statusCode,
+          message: "Error al obtener el usuario",
+          messageError: response.messageError,
+          data: null,
+        );
+      }
+    }catch (e) {
+      // Manejar la excepción
+      print("Error al realizar la solicitud de obtención de usuario: $e");
+      return ResponseModel(
+        isSuccess: false,
+        isRequest: false,
+        isMessageError: true,
+        statusCode: 500,
+        message: 'Error al realizar la solicitud de obtención de usuario',
+        messageError: e.toString(),
+        data: null,
+      );
+    }
+  }
 }

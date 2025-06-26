@@ -1,8 +1,11 @@
 import 'package:rentals/models/database/user_dao.dart';
+import 'package:rentals/models/response_model.dart';
 import '../models/user_model.dart';
+import '../services/ApiService.dart';
 
 class UserNegocio {
   UserDao _userDao;
+  ApiService apiService = ApiService.getInstance();
   //constructor
   UserNegocio() : _userDao = UserDao();
 

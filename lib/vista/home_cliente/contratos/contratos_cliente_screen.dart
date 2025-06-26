@@ -88,7 +88,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
 
   Widget _buildContratoCard(BuildContext context, ContratoModel contrato, ContratoProvider provider) {
     final dateFormat = DateFormat('dd/MM/yyyy');
-    
+
     // Get status color
     Color statusColor;
     switch (contrato.estado.toLowerCase()) {
@@ -157,7 +157,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
               ],
             ),
           ),
-          
+
           // Contract info
           Padding(
             padding: const EdgeInsets.all(12),
@@ -214,7 +214,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
                     color: Colors.green,
                   ),
                 ),
-                
+
                 // Contract details if available
                 if (contrato.detalle != null && contrato.detalle!.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -230,9 +230,9 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
                     style: const TextStyle(fontSize: 14),
                   ),
                 ],
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Action buttons based on contract status
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -337,7 +337,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await provider.updateContratoClienteAprobado(contrato.id, false);
+              await provider.updateContratoClienteAprobado(contrato.id, false, context: context);
             },
             child: const Text(
               'Rechazar',
@@ -347,7 +347,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              await provider.updateContratoClienteAprobado(contrato.id, true);
+              await provider.updateContratoClienteAprobado(contrato.id, true, context: context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -419,7 +419,7 @@ class _ContratosClienteScreenState extends State<ContratosClienteScreen> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(context);
-              await provider.registrarPagoContrato(contrato.id, DateTime.now());
+              await provider.registrarPagoContrato(contrato.id, DateTime.now(), context: context);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,

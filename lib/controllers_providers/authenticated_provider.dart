@@ -5,6 +5,7 @@ import '../../negocio/AuthenticatedNegocio.dart';
 import '../vista/components/message_widget.dart';
 import '../vista/interfaces/authenticated_screen_state.dart';
 import 'user_global_provider.dart';
+import 'blockchain_provider.dart';
 
 class AuthenticatedProvider extends ChangeNotifier{
   late AuthenticatedNegocio authenticatedNegocio;
@@ -93,6 +94,19 @@ class AuthenticatedProvider extends ChangeNotifier{
         // Update global user state
         _userGlobalProvider.updateUser(userActual);
 
+        // Update the user's wallet address if blockchain is initialized
+        try {
+          final blockchainProvider = BlockchainProvider.instance;
+          if (blockchainProvider.isInitialized) {
+            await blockchainProvider.updateUserWalletAddress();
+            print('Wallet address updated for logged in user');
+          } else {
+            print('Blockchain not initialized, wallet address not updated');
+          }
+        } catch (e) {
+          print('Error updating wallet address: $e');
+        }
+
         messageType = responseModel.isSuccess ? MessageType.success : MessageType.error;
         isSuccess = responseModel.isSuccess;
         message = responseModel.isSuccess ? responseModel.message : ('${responseModel.message}\n${responseModel.messageError}').toString();
@@ -153,6 +167,19 @@ class AuthenticatedProvider extends ChangeNotifier{
 
       // Update global user state
       _userGlobalProvider.updateUser(userActual);
+
+      // Update the user's wallet address if blockchain is initialized
+      try {
+        final blockchainProvider = BlockchainProvider.instance;
+        if (blockchainProvider.isInitialized) {
+          await blockchainProvider.updateUserWalletAddress();
+          print('Wallet address updated for new user');
+        } else {
+          print('Blockchain not initialized, wallet address not updated');
+        }
+      } catch (e) {
+        print('Error updating wallet address: $e');
+      }
 
       messageType = MessageType.success;
       isSuccess = true;
@@ -224,6 +251,40 @@ class AuthenticatedProvider extends ChangeNotifier{
       message = ('${responseModel.message}\n${responseModel.messageError}').toString();
     }
     return isSuccess;
+  }
+
+  // Actualizar perfil de usuario
+  Future<bool> updateUserProfile(UserModel updatedUser) async {
+    try {
+      isLoading = true;
+      ResponseModel responseModel = await authenticatedNegocio.updateUserProfile(updatedUser);
+
+      if (responseModel.isSuccess) {
+        // Actualizar el usuario actual
+        userActual = UserModel.mapToModel(responseModel.data);
+
+        // Actualizar el usuario global
+        _userGlobalProvider.updateUser(userActual);
+
+        messageType = MessageType.success;
+        message = responseModel.message;
+        isSuccess = true;
+        isLoading = false;
+        return true;
+      } else {
+        messageType = MessageType.error;
+        message = responseModel.messageError ?? 'Error al actualizar el perfil';
+        isSuccess = false;
+        isLoading = false;
+        return false;
+      }
+    } catch (e) {
+      messageType = MessageType.error;
+      message = 'Error al actualizar el perfil: $e';
+      isSuccess = false;
+      isLoading = false;
+      return false;
+    }
   }
 
   String? get message => _message;

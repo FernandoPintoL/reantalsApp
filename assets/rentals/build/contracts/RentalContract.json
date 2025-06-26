@@ -19325,12 +19325,12 @@
     "1337": {
       "events": {},
       "links": {},
-      "address": "0x9fa02580Bd718D5ad6e2f873148C9414C0962F40",
-      "transactionHash": "0x69f77c4cfdf9db5141196266775d65e3af823891afe5e5a234e1ef5e56177872"
+      "address": "0x2B4E0605adafA9D25078E056B8cd5af1DE77cEf1",
+      "transactionHash": "0x0b7b8729c37ba3ae035f08377f8981773ecd08b872d61fc6a78e4abf33d798ae"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-06-23T22:27:38.499Z",
+  "updatedAt": "2025-06-24T21:22:29.194Z",
   "networkType": "ethereum",
   "devdoc": {
     "details": "Smart contract for managing rental agreements",

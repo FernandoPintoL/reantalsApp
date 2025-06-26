@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../controllers_providers/authenticated_provider.dart';
+import '../../widgets/notification_badge.dart';
 import 'pagos/pagos_pendientes_screen.dart';
 import 'pagos/historial_pagos_screen.dart';
 import 'contratos/contratos_cliente_screen.dart';
 import 'contratos/historial_contratos_screen.dart';
+import 'solicitudes/solicitudes_screen.dart';
 import '../blockchain/blockchain_control_screen.dart';
 
 class HomeClienteScreen extends StatefulWidget {
@@ -45,6 +47,7 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
       appBar: AppBar(
         title: const Text('Panel de Cliente - Blockchain'),
         actions: [
+          const NotificationBadge(),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -70,10 +73,16 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Bienvenido, ${context.watch<AuthenticatedProvider>().userActual!.name ?? "Cliente"}',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
+                        if(context.watch<AuthenticatedProvider>().userActual != null)
+                          Text(
+                            'Bienvenido, ${context.watch<AuthenticatedProvider>().userActual!.name ?? "Cliente"}',
+                            style: Theme.of(context).textTheme.headlineSmall,
+                          )
+                        else
+                          const Text(
+                            'Bienvenido, Cliente',
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
                         const SizedBox(height: 8),
                         Text(
                           'Gestiona tus pagos mensuales y revisa el estado de tus contratos.',
@@ -191,6 +200,65 @@ class _HomeClienteScreenState extends State<HomeClienteScreen> {
                               builder: (context) => const HistorialContratosScreen(),
                             ),
                           );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Solicitudes section
+                Text(
+                  'Mis Solicitudes de Alquiler',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+
+                Card(
+                  elevation: 4,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: const Text('Mis Solicitudes'),
+                        subtitle: const Text('Visualiza todas tus solicitudes de alquiler'),
+                        leading: const Icon(Icons.list_alt, color: Colors.orange),
+                        trailing: const Icon(Icons.arrow_forward_ios),
+                        onTap: () {
+                          // Navigate to rental requests screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SolicitudesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Profile section
+                Text(
+                  'Mi Perfil',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 16),
+
+                Card(
+                  elevation: 4,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        title: const Text('Editar Perfil'),
+                        subtitle: const Text('Actualiza tu información personal'),
+                        leading: const Icon(Icons.person, color: Colors.orange),
+                        trailing: const Icon(Icons.arrow_forward_ios),
+                        onTap: () {
+                          // Navigate to edit profile screen
+                          Navigator.pushNamed(context, '/editProfile');
                         },
                       ),
                     ],

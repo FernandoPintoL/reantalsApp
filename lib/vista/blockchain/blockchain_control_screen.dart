@@ -30,8 +30,10 @@ class _BlockchainControlScreenState extends State<BlockchainControlScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _initializeBlockchain();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeBlockchain();
+      _loadData();
+    });
   }
 
   @override
@@ -49,36 +51,8 @@ class _BlockchainControlScreenState extends State<BlockchainControlScreen>
     try {
       final blockchainProvider = context.read<BlockchainProvider>();
 
-      if (!blockchainProvider.isInitialized) {
-        // Get blockchain configuration from .env
-        final rpcUrl = dotenv.env['BLOCKCHAIN_RPC_URL_LOCAL'] ?? '';
-        final privateKey = dotenv.env['MNEMONIC'] ?? '';
-        final chainId =
-            int.tryParse(dotenv.env['BLOCKCHAIN_CHAIN_ID_LOCAL'] ?? '0') ?? 0;
-
-        if (rpcUrl.isEmpty || privateKey.isEmpty || chainId == 0) {
-          setState(() {
-            _errorMessage = 'Configuración blockchain incompleta en .env';
-            _isLoading = false;
-          });
-          return;
-        }
-
-        final success = await blockchainProvider.initialize(
-          rpcUrl: rpcUrl,
-          privateKey: privateKey,
-          chainId: chainId,
-        );
-
-        if (!success) {
-          setState(() {
-            _errorMessage =
-                'Error al inicializar blockchain: ${blockchainProvider.message}';
-            _isLoading = false;
-          });
-          return;
-        }
-      }
+      // The blockchain will be automatically initialized when needed
+      await blockchainProvider.ensureInitialized();
 
       setState(() {
         _isBlockchainInitialized = blockchainProvider.isInitialized;

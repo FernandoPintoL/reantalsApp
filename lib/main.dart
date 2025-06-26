@@ -10,28 +10,63 @@ import 'controllers_providers/solicitud_alquiler_provider.dart';
 import 'controllers_providers/user_global_provider.dart';
 import 'services/ApiService.dart';
 import 'services/UrlConfigProvider.dart';
+import 'services/notification_service.dart';
+import 'services/socket_service.dart';
+import 'services/websocket_admin_service.dart';
 import 'vista/auth/login_screen.dart';
 import 'vista/auth/register_screen.dart';
+import 'vista/auth/edit_profile_screen.dart';
 import 'vista/home_cliente/home_cliente_screen.dart';
 import 'vista/home_propietario/home_propietario_screen.dart';
 import 'vista/inmueble/inmueble_screen.dart';
+import 'vista/admin/websocket_admin_screen.dart';
+import 'vista/notifications/notification_center_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  // Create and initialize the UrlConfigProvider
+
+  // Initialize blockchain provider
+  await BlockchainProvider.instance.initializeFromEnv();
+
+  // Initialize notification service
+  /*final notificationService = NotificationService();
+  await notificationService.initialize();*/
+
+  // Create and initialize the UrlConfigProvider first
   final urlConfigProvider = UrlConfigProvider();
 
   // Set it as the shared provider for ApiService
   ApiService.setSharedUrlConfigProvider(urlConfigProvider);
 
-  runApp(MyApp(urlConfigProvider: urlConfigProvider));
+  // Initialize socket service after UrlConfigProvider is created
+  final socketService = SocketService();
+  socketService.initialize();
+
+  // Initialize websocket admin service
+  final websocketAdminService = WebSocketAdminService(socketService);
+
+  runApp(MyApp(
+    urlConfigProvider: urlConfigProvider,
+    // notificationService: notificationService,
+    socketService: socketService,
+    websocketAdminService: websocketAdminService,
+  ));
 }
 
 class MyApp extends StatefulWidget {
   final UrlConfigProvider? urlConfigProvider;
+  // final NotificationService notificationService;
+  final SocketService socketService;
+  final WebSocketAdminService websocketAdminService;
 
-  const MyApp({super.key, this.urlConfigProvider});
+  const MyApp({
+    super.key, 
+    this.urlConfigProvider,
+    // required this.notificationService,
+    required this.socketService,
+    required this.websocketAdminService,
+  });
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -41,6 +76,13 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    widget.socketService.dispose();
+    widget.websocketAdminService.dispose();
+    super.dispose();
   }
 
   @override
@@ -55,10 +97,22 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProvider<UserGlobalProvider>.value(
           value: UserGlobalProvider(),
         ),
+        // Provide socket service
+        Provider<SocketService>.value(
+          value: widget.socketService,
+        ),
+        // Provide websocket admin service
+        Provider<WebSocketAdminService>.value(
+          value: widget.websocketAdminService,
+        ),
+        // Provide notification service
+        Provider<NotificationService>(create: (context) => NotificationService()),
+        // BlockchainProvider is already provided as a singleton below
         ChangeNotifierProvider(create: (context) => AuthenticatedProvider()),
         ChangeNotifierProvider(create: (context) => InmuebleProvider()),
         ChangeNotifierProvider(create: (context) => SolicitudAlquilerProvider()),
-        ChangeNotifierProvider(create: (context) => BlockchainProvider()),
+        // Use the singleton instance of BlockchainProvider
+        ChangeNotifierProvider<BlockchainProvider>.value(value: BlockchainProvider.instance),
         ChangeNotifierProvider(create: (context) => ContratoProvider()),
         ChangeNotifierProvider(create: (context) => PagoProvider()),
       ],
@@ -80,12 +134,15 @@ class _MyAppState extends State<MyApp> {
         ),
         initialRoute: '/',
         routes: {
-          '/': (context) => InmuebleScreen(initializeBlockchain: true),
+          '/': (context) => const InmuebleScreen(),
           '/login': (context) => LoginScreen(),
           '/register': (context) => RegisterScreen(),
-          '/home': (context) => InmuebleScreen(),
+          '/home': (context) => const InmuebleScreen(),
           '/homePropietario': (context) => HomePropietarioScreen(),
           '/homeCliente': (context) => HomeClienteScreen(),
+          '/editProfile': (context) => EditProfileScreen(),
+          '/websocketAdmin': (context) => WebSocketAdminScreen(),
+          '/notifications': (context) => NotificationCenterScreen(),
         },
       ),
     );

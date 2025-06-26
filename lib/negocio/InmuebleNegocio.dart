@@ -47,7 +47,7 @@ class InmuebleNegocio {
 
   Future<ResponseModel> getInmueblesByPropietarioId(int propietarioId) async {
     try {
-      ResponseModel response = await apiService.post('inmuebles/propietario', {'propietario_id': propietarioId});
+      ResponseModel response = await apiService.get('inmuebles/propietario/$propietarioId');
       print('Response from getInmueblesByPropietarioId: ${response.toJson()}');
       return response;
     } catch (e) {
@@ -66,18 +66,12 @@ class InmuebleNegocio {
 
   Future<InmuebleModel?> getInmuebleById(int id) async {
     try {
-      ResponseModel response = await apiService.get('/inmuebles/$id');
-
+      InmuebleModel? i;
+      ResponseModel response = await apiService.get('inmuebles/$id');
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        if (response.data != null) {
-          return InmuebleModel.fromList(response.data as List<Map<String, dynamic>>).firstWhere(
-            (inmueble) => inmueble.id == id,
-            orElse: () => InmuebleModel(),
-          );
-        }
+        i = InmuebleModel.mapToModel(response.data);
       }
-
-      return null;
+      return i;
     } catch (e) {
       print('Error fetching inmueble by id: $e');
       return null;
